@@ -4,7 +4,7 @@
 
 Portfolio analytics engineering project for Corvella Pay, a fictional US payment
 facilitator. Focus: disputes and chargebacks. Full business context, source schemas,
-metric definitions and requirements are in README.md — read the relevant section
+metric definitions and requirements are in docs/business_context.md — read the relevant section
 before designing models or metrics.
 
 ## Stack (fixed — don't add tools)
@@ -19,9 +19,9 @@ before designing models or metrics.
 - Money: DECIMAL(18,2). Never FLOAT/DOUBLE.
 - Timestamps stored in UTC; convert to US Eastern only for display.
 - Never store full card numbers — only card_bin and card_last4.
-- Source column names follow the README "Data produced at each stage" tables.
+- Source column names follow the "Data produced at each stage" tables in docs/business_context.md.
 - Keep history (SCD2 / event tables); never overwrite status or merchant attributes.
-- Use the README metric definitions; don't invent alternatives.
+- Use the metric definitions in docs/business_context.md; don't invent alternatives.
 
 ## Design principles
 
