@@ -154,7 +154,7 @@ If every check passes, the dbt task is confirmed for scheduled runs.
 
 In the project, the replay job also plays the role of the clock: one run advances the simulated time by one hour or one day. That makes it possible to run several simulated days in a row to show history building up.
 
-**Run modes.** Free Edition does not publish its daily compute quota, and exceeding it shuts down compute for the rest of the day, so the replay does not run all 24 months day by day (that would be thousands of job runs). It has two modes instead, using the same jobs:
+**Run modes.** At 1% scale, 24 months of history is about 12 million rows, around 1 GB in Delta, which a 2X-Small warehouse handles easily. Free Edition does not publish its daily compute quota, and exceeding it shuts down compute for the rest of the day, so the replay does not run all 24 months day by day (that would be thousands of job runs). It has two modes instead, using the same jobs:
 
 | Mode | What it does | When |
 | --- | --- | --- |
