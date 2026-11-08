@@ -154,6 +154,17 @@ If every check passes, the dbt task is confirmed for scheduled runs.
 
 In the project, the replay job also plays the role of the clock: one run advances the simulated time by one hour or one day. That makes it possible to run several simulated days in a row to show history building up.
 
+**Run modes.** Free Edition does not publish its daily compute quota, and exceeding it shuts down compute for the rest of the day, so the replay does not run all 24 months day by day (that would be thousands of job runs). It has two modes instead, using the same jobs:
+
+| Mode | What it does | When |
+| --- | --- | --- |
+| **Backfill** | Releases the first 23 months into the inbox in a few large batches (one per month) and processes each batch with the normal jobs | Once at the start, and again after a full rebuild |
+| **Demo replay** | Advances the simulated clock day by day (or hour by hour for the work queue) for the last 30 to 60 days, on demand, with an "advance N days" parameter instead of a real-time schedule | When demonstrating incremental loads, late arrivals and history building up |
+
+The generator also produces the history month by month, so each generation step stays small. If the quota is ever hit, the scale drops to 0.5% or the history to 12 months; only the generator parameters change.
+
+**Job task layout.** Free Edition allows at most 5 concurrent job tasks, so each job has three tasks in sequence: replay, bronze ingestion (one task that runs the Auto Loader stream for each source in turn), and dbt. Each job allows only one active run at a time, and the daily job runs outside the hourly window, so the hourly and daily jobs never overlap.
+
 ## Architecture decision records
 
 Each decision is recorded in its own file:
