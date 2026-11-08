@@ -123,7 +123,7 @@ Unity Catalog provides, across all layers: permissions by role, column masks and
 
 **Who does what.** PySpark processes the data from the generator up to bronze. From bronze onwards, transformations are written in dbt, but dbt does not process data itself: it compiles each model into SQL (`CREATE OR REPLACE TABLE`, or `MERGE` for incremental models), runs the models in dependency order, and sends the SQL through the dbt-databricks adapter to a Databricks SQL warehouse, which executes it. The results are Delta tables in Unity Catalog.
 
-**Where dbt runs.** During development, from the local machine. In continuous integration, from GitHub Actions on every pull request. On schedule, as a **dbt task in the same Databricks Job** as the replay and bronze ingestion, so the whole pipeline has one schedule, one set of task dependencies (replay, then bronze, then dbt) and one place for logs and retries. The dbt task reads the project from the GitHub repository, runs dbt Core on serverless jobs compute, and sends the generated SQL to the workspace's serverless SQL warehouse; the run date is passed to dbt as a variable (for example `--vars '{"run_date": "{{job.start_time.iso_date}}"}'`). If the smoke test below fails, scheduled dbt runs move to GitHub Actions, triggered after the ingestion job through the Databricks API. Jobs are scheduled so they never overlap, because Free Edition allows at most 5 concurrent job tasks.
+**Where dbt runs.** During development, from the local machine. In continuous integration, from GitHub Actions on every pull request. On schedule, as a **dbt task in the transformation job**, which is triggered when the ingestion job finishes (see "Job layout"). The dbt task reads the project from the GitHub repository, runs dbt Core on serverless jobs compute, and sends the generated SQL to the workspace's serverless SQL warehouse; the run date is passed to dbt as a variable (for example `--vars '{"run_date": "{{job.start_time.iso_date}}"}'`). If the smoke test below fails, scheduled dbt runs move to GitHub Actions, triggered after the ingestion job through the Databricks API.
 
 **Smoke test for the dbt task.** Before the pipeline relies on a dbt task, a minimal test confirms it works in Free Edition. The main risk is network access: Free Edition restricts outbound internet access to trusted domains, and it is not documented whether GitHub, PyPI and the dbt package hub are among them.
 
@@ -158,12 +158,31 @@ In the project, the replay job also plays the role of the clock: one run advance
 
 | Mode | What it does | When |
 | --- | --- | --- |
-| **Backfill** | Releases the first 23 months into the inbox in a few large batches (one per month) and processes each batch with the normal jobs | Once at the start, and again after a full rebuild |
-| **Demo replay** | Advances the simulated clock day by day (or hour by hour for the work queue) for the last 30 to 60 days, on demand, with an "advance N days" parameter instead of a real-time schedule | When demonstrating incremental loads, late arrivals and history building up |
+| **Backfill** | The generator produces 24 months for all seven sources. The first 23 months are released into the inbox in 23 batches, one per month, oldest first; each batch holds every file whose arrival date falls in that month. Each batch goes through the normal jobs: the source simulator releases the month, then the ingestion job and the transformation job run exactly as on any day. No separate backfill code exists: the same pipeline just handles a bigger batch. | Once at the start, and again after a full rebuild |
+| **Demo replay** | Advances the simulated clock day by day (or hour by hour for the work queue, for one or two simulated days) over the last 14 to 30 days, on demand, with an "advance N days" parameter instead of a real-time schedule. Runs in sessions of a few simulated days at a time, spread across real days, to stay well within the daily compute quota. | When demonstrating incremental loads, late arrivals and history building up |
 
 The generator also produces the history month by month, so each generation step stays small. If the quota is ever hit, the scale drops to 0.5% or the history to 12 months; only the generator parameters change.
 
-**Job task layout.** Free Edition allows at most 5 concurrent job tasks, so each job has three tasks in sequence: replay, bronze ingestion (one task that runs the Auto Loader stream for each source in turn), and dbt. Each job allows only one active run at a time, and the daily job runs outside the hourly window, so the hourly and daily jobs never overlap.
+**Job layout.** The pipeline is split into three independent jobs, so a failure in one source or step doesn't block the rest:
+
+```mermaid
+---
+title: "Three jobs: a failing source never blocks the others"
+---
+flowchart LR
+    sim["<b>Source simulator</b><br/>replay: drops files by<br/>source and period<br/><i>not part of the solution</i>"] -- files --> ing["<b>Ingestion job</b><br/>one task per source,<br/>up to 5 at once<br/>each fails and retries alone"]
+    ing -- bronze --> tr["<b>Transformation job</b><br/>dbt source freshness,<br/>then dbt build<br/>silver and gold"]
+```
+
+The ingestion job triggers the transformation job when it finishes; each job allows one active run at a time.
+
+| Job | What it does | How it runs |
+| --- | --- | --- |
+| **Source simulator** | The replay: drops files into the inbox for the requested sources and period. It stands in for the external systems and is not part of the solution. | Parameters: `sources` (default all) and `period` (an hour, a day or a month) |
+| **Ingestion** | Loads new inbox files into bronze. One generic notebook, parameterized by source name and driven by a small config per source (format, inbox path, target table), run with a "For each" task over the source list. | Concurrency 5, Free Edition's limit; each source loads, fails and retries independently |
+| **Transformation** | Runs dbt: first `dbt source freshness`, which stops the run if a source is not up to date, then `dbt build` for silver and gold | Triggered when the ingestion job finishes |
+
+The hourly path is the same layout with `sources` set to dispute notifications and case actions, and only the dbt models that use them. Each job allows one active run at a time, and the daily run is scheduled outside the hourly window.
 
 ## Architecture decision records
 
