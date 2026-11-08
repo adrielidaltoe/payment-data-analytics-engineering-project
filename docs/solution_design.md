@@ -174,8 +174,6 @@ flowchart LR
     ing -- bronze --> tr["<b>Transformation job</b><br/>dbt source freshness,<br/>then dbt build<br/>silver and gold"]
 ```
 
-The ingestion job triggers the transformation job when it finishes; each job allows one active run at a time.
-
 | Job | What it does | How it runs |
 | --- | --- | --- |
 | **Source simulator** | The replay: drops files into the inbox for the requested sources and period. It stands in for the external systems and is not part of the solution. | Parameters: `sources` (default all) and `period` (an hour, a day or a month) |
