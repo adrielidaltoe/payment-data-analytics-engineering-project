@@ -23,6 +23,14 @@ before designing models or metrics.
 - Keep history (SCD2 / event tables); never overwrite status or merchant attributes.
 - Use the metric definitions in docs/business_context.md; don't invent alternatives.
 
+## Secrets and connections
+
+- `dbt/profiles.yml` is committed and may contain only `env_var()` references, never literal hosts, paths or tokens.
+- Connection values live in `.env` (never committed); `.env.example` lists the variables with placeholders and must be kept in sync with `profiles.yml`.
+- dbt does not load `.env` automatically: load it into the shell before running dbt (`set -a; source .env; set +a`).
+- In CI, the same variables come from GitHub Actions secrets.
+- Never print, log or hardcode tokens, even in examples or tests.
+
 ## Design principles
 
 - Prefer simple, maintainable designs (small team).
