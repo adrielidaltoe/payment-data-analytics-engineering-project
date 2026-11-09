@@ -1,0 +1,61 @@
+{
+  "name": "dbt-smoke-test",
+  "email_notifications": {
+    "no_alert_for_skipped_runs": false
+  },
+  "webhook_notifications": {},
+  "timeout_seconds": 0,
+  "max_concurrent_runs": 1,
+  "tasks": [
+    {
+      "task_key": "dbt-smoke-test",
+      "run_if": "ALL_SUCCESS",
+      "dbt_task": {
+        "project_directory": "dbt",
+        "commands": [
+          "dbt deps",
+          "dbt debug",
+          "dbt run --select smoke_test"
+        ],
+        "schema": "smoke_test",
+        "warehouse_id": "<your-sql-warehouse-id>",
+        "catalog": "corvella",
+        "source": "GIT"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "environment_key": "dbt-smoke-test_environment",
+      "disabled": false
+    }
+  ],
+  "git_source": {
+    "git_url": "https://github.com/adrielidaltoe/payment-data-analytics-engineering-project",
+    "git_provider": "gitHub",
+    "git_branch": "main"
+  },
+  "format": "MULTI_TASK",
+  "queue": {
+    "enabled": true
+  },
+  "environments": [
+    {
+      "environment_key": "dbt-default",
+      "spec": {
+        "dependencies": [
+          "dbt-databricks>=1.0.0,<2.0.0"
+        ],
+        "environment_version": "6"
+      }
+    },
+    {
+      "environment_key": "dbt-smoke-test_environment",
+      "spec": {
+        "dependencies": [
+          "dbt-databricks==1.13.0"
+        ],
+        "environment_version": "6"
+      }
+    }
+  ],
+  "performance_target": "PERFORMANCE_OPTIMIZED"
+}

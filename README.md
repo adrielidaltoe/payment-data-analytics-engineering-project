@@ -103,10 +103,11 @@ Done:
 
 - [x] Business context and requirements
 - [x] Solution design and architecture decisions
+- [x] Smoke test for the dbt task in a Databricks Job
 
 Next:
 
-- [ ] Smoke test for the dbt task (and Databricks Asset Bundles)
+- [ ] Databricks Asset Bundles
 - [ ] Repository, environments (dev and prod) and CI skeleton
 - [ ] Source data generation: detailed spec and generator
 - [ ] Schema for each layer and the gold dimensional model

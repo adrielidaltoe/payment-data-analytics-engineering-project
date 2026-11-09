@@ -145,6 +145,8 @@ Unity Catalog provides, across all layers: permissions by role, column masks and
 
 If every check passes, the dbt task is confirmed for scheduled runs.
 
+**Result (Nov 9, 2026): passed.** A job with one dbt task, reading `main` from GitHub on serverless compute with `dbt-databricks` 1.13.0, ran `dbt deps`, `dbt debug` and `dbt run --select smoke_test`, and all five checks passed. The task used the profile Databricks generates from the selected SQL warehouse, not the committed `profiles.yml`, so no token is stored in the job. Scheduled dbt runs use the dbt task; the GitHub Actions fallback is not needed. The job definition is kept for reference in [`databricks/jobs/dbt-smoke-test.json`](../databricks/jobs/dbt-smoke-test.json) (exported from the Jobs API). To reuse it, replace `<your-sql-warehouse-id>` with your SQL warehouse ID (the last part of its HTTP path) and `git_url` with your copy of the repository; in Databricks Asset Bundles these become variables.
+
 **Schedules**, following the latency requirements:
 
 | Run | Frequency | What it does |
