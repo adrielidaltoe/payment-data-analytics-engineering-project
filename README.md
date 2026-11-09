@@ -64,19 +64,37 @@ flowchart LR
 
 Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboards, Genie) · PySpark · dbt Core with dbt-databricks · GitHub Actions
 
+| Tool | Version | Where it is set |
+| --- | --- | --- |
+| Python | 3.12 (same as Databricks serverless jobs) | `.python-version` |
+| dbt Core | 1.12 | Installed with dbt-databricks |
+| dbt-databricks | 1.13.0 | `requirements.txt` |
+
 ## How to run
 
-1. Copy `.env.example` to `.env` and fill in your Databricks workspace host, SQL warehouse HTTP path and personal access token. `.env` is ignored by Git and must never be committed.
+Prerequisite: [uv](https://docs.astral.sh/uv/), used to create the Python environment. The project uses Python 3.12, the version Databricks serverless jobs run; uv downloads it if it is missing, without changing the system Python.
+
+1. Create the virtual environment and install dbt (the version is pinned in `requirements.txt`):
+
+    ```bash
+    uv venv --python 3.12 .venv
+    uv pip install -r requirements.txt
+    source .venv/bin/activate
+    ```
+
+2. Copy `.env.example` to `.env` and fill in your Databricks workspace host, SQL warehouse HTTP path and personal access token. `.env` is ignored by Git and must never be committed.
 
     ```bash
     cp .env.example .env
     ```
 
-2. Load the variables into your shell and check the dbt connection. dbt does not read `.env` by itself, so the variables must be exported before running any dbt command:
+3. Load the variables into your shell, then run dbt from the `dbt/` folder, where the project and its `profiles.yml` live. dbt does not read `.env` by itself, so the variables must be exported before running any dbt command:
 
     ```bash
     set -a; source .env; set +a   # export everything in .env
-    dbt debug
+    cd dbt
+    dbt deps    # install dbt packages
+    dbt debug   # check the connection to the SQL warehouse
     ```
 
 ## Project status

@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: smoke_test
+    description: >
+      One-row table created by the smoke test for the Databricks dbt task.
+      It confirms package download, warehouse connection and Unity Catalog write.
+    columns:
+      - name: smoke_test_key
+        description: Surrogate key built with dbt_utils, to prove the package was installed.
+      - name: status
+        description: Always 'ok'.
+      - name: created_at
+        description: When the table was built, in UTC.

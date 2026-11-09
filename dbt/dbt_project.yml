@@ -1,0 +1,22 @@
+name: corvella
+version: "1.0.0"
+profile: corvella
+
+# dbt Core version this project is tested with (see README, Tech stack).
+require-dbt-version: [">=1.12.0", "<2.0.0"]
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+snapshot-paths: ["snapshots"]
+analysis-paths: ["analyses"]
+
+clean-targets:
+  - target
+  - dbt_packages
+
+models:
+  corvella:
+    smoke_test:
+      +materialized: table
