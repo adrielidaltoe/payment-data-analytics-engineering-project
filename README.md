@@ -88,11 +88,13 @@ Prerequisite: [uv](https://docs.astral.sh/uv/), used to create the Python enviro
     cp .env.example .env
     ```
 
-3. Load the variables into your shell and check the dbt connection. dbt does not read `.env` by itself, so the variables must be exported before running any dbt command:
+3. Load the variables into your shell, then run dbt from the `dbt/` folder, where the project and its `profiles.yml` live. dbt does not read `.env` by itself, so the variables must be exported before running any dbt command:
 
     ```bash
     set -a; source .env; set +a   # export everything in .env
-    dbt debug
+    cd dbt
+    dbt deps    # install dbt packages
+    dbt debug   # check the connection to the SQL warehouse
     ```
 
 ## Project status
