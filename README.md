@@ -64,6 +64,12 @@ flowchart LR
 
 Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboards, Genie) · PySpark · dbt Core with dbt-databricks · GitHub Actions
 
+| Tool | Version | Where it is set |
+| --- | --- | --- |
+| Python | 3.12 (same as Databricks serverless jobs) | `.python-version` |
+| dbt Core | 1.12 | Installed with dbt-databricks |
+| dbt-databricks | 1.13.0 | `requirements.txt` |
+
 ## How to run
 
 Prerequisite: [uv](https://docs.astral.sh/uv/), used to create the Python environment. The project uses Python 3.12, the version Databricks serverless jobs run; uv downloads it if it is missing, without changing the system Python.
