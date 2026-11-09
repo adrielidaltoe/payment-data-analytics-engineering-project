@@ -27,9 +27,18 @@ The root cause is data: dispute information is scattered across systems, arrives
 
 ## Architecture
 
-```
-Generator ──> source_history ──> Replay ──> inbox ──> Bronze ──> Silver ──> Gold ──> Dashboards, work queue, Genie
-(PySpark)     (UC volume)        (by arrival time)    (Auto Loader) (dbt)    (dbt)
+```mermaid
+---
+title: Data is generated once, then replayed as if the sources sent it live
+---
+flowchart LR
+    gen["<b>Generator</b><br/>PySpark: full history, once"] --> hist["<b>Source history</b><br/>volume: all data<br/>+ arrival times"]
+    hist --> replay["<b>Replay job</b><br/>releases one day<br/>or hour per run"]
+    replay -- copies new arrivals --> inbox["<b>Inbox</b><br/>volume: files<br/>as sources send"]
+    inbox --> bronze["<b>Bronze</b><br/>raw, append-only<br/>PySpark ingest"]
+    bronze --> silver["<b>Silver</b><br/>clean, linked<br/>dbt models"]
+    silver --> gold["<b>Gold</b><br/>dimensional model<br/>+ metrics"]
+    gold --> consumption["<b>Consumption</b><br/>dashboards,<br/>queue, Genie"]
 ```
 
 - **Medallion architecture** in one Unity Catalog catalog (`corvella`), with schemas `landing`, `bronze`, `silver` and `gold`.
