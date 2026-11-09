@@ -64,6 +64,21 @@ flowchart LR
 
 Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboards, Genie) · PySpark · dbt Core with dbt-databricks · GitHub Actions
 
+## How to run
+
+1. Copy `.env.example` to `.env` and fill in your Databricks workspace host, SQL warehouse HTTP path and personal access token. `.env` is ignored by Git and must never be committed.
+
+    ```bash
+    cp .env.example .env
+    ```
+
+2. Load the variables into your shell and check the dbt connection. dbt does not read `.env` by itself, so the variables must be exported before running any dbt command:
+
+    ```bash
+    set -a; source .env; set +a   # export everything in .env
+    dbt debug
+    ```
+
 ## Project status
 
 Done:
