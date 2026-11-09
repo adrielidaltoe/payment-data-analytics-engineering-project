@@ -18,7 +18,7 @@
           "dbt run --select smoke_test"
         ],
         "schema": "smoke_test",
-        "warehouse_id": "211318391a3f53a6",
+        "warehouse_id": "<your-sql-warehouse-id>",
         "catalog": "corvella",
         "source": "GIT"
       },
