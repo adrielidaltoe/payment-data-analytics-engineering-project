@@ -122,7 +122,7 @@ Done:
 
 Next:
 
-- [ ] Repository, environments (dev and prod) and CI skeleton
+- [ ] Repository, environments (dev and prod) and CI/CD with Asset Bundles ([plan](docs/environments_and_cicd.md))
 - [ ] Source data generation: detailed spec and generator
 - [ ] Schema for each layer and the gold dimensional model
 - [ ] Semantic layer and metric definitions
@@ -130,11 +130,11 @@ Next:
 - [ ] Governance and security: permissions, masks, row filters
 - [ ] Consumption: work queue, Risk dashboard, Genie space
 - [ ] Data monitoring
-- [ ] Jobs as code and deployment
 - [ ] Documentation and portfolio packaging
 
 ## Documentation
 
 - [Business context](docs/business_context.md) — company, payment lifecycle, dispute process, business questions, metrics, requirements and constraints.
 - [Solution design](docs/solution_design.md) — architecture, layers, source data, Unity Catalog layout, processing and orchestration.
+- [Environments and CI/CD](docs/environments_and_cicd.md) — dev and prod targets, identities and secrets, CI and CD workflows, repository rules and implementation steps.
 - [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-009).
