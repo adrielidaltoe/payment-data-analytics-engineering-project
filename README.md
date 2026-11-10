@@ -59,6 +59,7 @@ flowchart LR
 | [005](docs/architecture_decision_records/adr-005-dbt-silver-gold.md) | Silver and gold built with dbt, executed by Databricks |
 | [006](docs/architecture_decision_records/adr-006-batch-processing.md) | Batch processing, no streaming |
 | [007](docs/architecture_decision_records/adr-007-merchant-scd2-from-versions.md) | Merchant type 2 history built from preserved versions, not dbt snapshots |
+| [008](docs/architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) | Jobs defined as code with Databricks Asset Bundles |
 
 ## Tech stack
 
@@ -116,10 +117,10 @@ Done:
 - [x] Business context and requirements
 - [x] Solution design and architecture decisions
 - [x] Smoke test for the dbt task in a Databricks Job
+- [x] Databricks Asset Bundles: smoke test job deployed and run from the bundle
 
 Next:
 
-- [ ] Databricks Asset Bundles
 - [ ] Repository, environments (dev and prod) and CI skeleton
 - [ ] Source data generation: detailed spec and generator
 - [ ] Schema for each layer and the gold dimensional model
@@ -135,4 +136,4 @@ Next:
 
 - [Business context](docs/business_context.md) — company, payment lifecycle, dispute process, business questions, metrics, requirements and constraints.
 - [Solution design](docs/solution_design.md) — architecture, layers, source data, Unity Catalog layout, processing and orchestration.
-- [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-007).
+- [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-008).
