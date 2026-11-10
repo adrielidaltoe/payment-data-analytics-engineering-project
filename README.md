@@ -59,6 +59,7 @@ flowchart LR
 | [005](docs/architecture_decision_records/adr-005-dbt-silver-gold.md) | Silver and gold built with dbt, executed by Databricks |
 | [006](docs/architecture_decision_records/adr-006-batch-processing.md) | Batch processing, no streaming |
 | [007](docs/architecture_decision_records/adr-007-merchant-scd2-from-versions.md) | Merchant type 2 history built from preserved versions, not dbt snapshots |
+| [008](docs/architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) | Jobs defined as code with Databricks Asset Bundles |
 
 ## Tech stack
 
@@ -69,10 +70,14 @@ Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboar
 | Python | 3.12 (same as Databricks serverless jobs) | `.python-version` |
 | dbt Core | 1.12 | Installed with dbt-databricks |
 | dbt-databricks | 1.13.0 | `requirements.txt` |
+| Databricks CLI | 1.22.1 | Installed separately (see How to run) |
 
 ## How to run
 
-Prerequisite: [uv](https://docs.astral.sh/uv/), used to create the Python environment. The project uses Python 3.12, the version Databricks serverless jobs run; uv downloads it if it is missing, without changing the system Python.
+Prerequisites:
+
+- [uv](https://docs.astral.sh/uv/), used to create the Python environment. The project uses Python 3.12, the version Databricks serverless jobs run; uv downloads it if it is missing, without changing the system Python.
+- [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install), used to deploy the jobs defined in `databricks.yml` and `resources/` (Databricks Asset Bundles).
 
 1. Create the virtual environment and install dbt (the version is pinned in `requirements.txt`):
 
@@ -97,6 +102,14 @@ Prerequisite: [uv](https://docs.astral.sh/uv/), used to create the Python enviro
     dbt debug   # check the connection to the SQL warehouse
     ```
 
+4. Deploy and run the jobs with the Databricks CLI, from the repository root, in the same shell (the CLI reads the same variables from `.env`). The `dev` target prefixes every job with `[dev <your user>]`, so it does not clash with other people's jobs:
+
+    ```bash
+    databricks bundle validate                   # check the bundle files
+    databricks bundle deploy -t dev              # upload the code and create or update the jobs
+    databricks bundle run -t dev dbt_smoke_test  # run a job
+    ```
+
 ## Project status
 
 Done:
@@ -104,10 +117,10 @@ Done:
 - [x] Business context and requirements
 - [x] Solution design and architecture decisions
 - [x] Smoke test for the dbt task in a Databricks Job
+- [x] Databricks Asset Bundles: smoke test job deployed and run from the bundle
 
 Next:
 
-- [ ] Databricks Asset Bundles
 - [ ] Repository, environments (dev and prod) and CI skeleton
 - [ ] Source data generation: detailed spec and generator
 - [ ] Schema for each layer and the gold dimensional model
@@ -123,4 +136,4 @@ Next:
 
 - [Business context](docs/business_context.md) — company, payment lifecycle, dispute process, business questions, metrics, requirements and constraints.
 - [Solution design](docs/solution_design.md) — architecture, layers, source data, Unity Catalog layout, processing and orchestration.
-- [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-007).
+- [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-008).

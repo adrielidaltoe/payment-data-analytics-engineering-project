@@ -9,7 +9,7 @@ before designing models or metrics.
 
 ## Stack (fixed — don't add tools)
 
-- Databricks Free Edition + Unity Catalog
+- Databricks Free Edition + Unity Catalog + Asset Bundles + Databricks CLI
 - dbt for all transformations
 - PySpark for synthetic source data (~1% of real scale)
 - Databricks AI/BI for dashboards

@@ -1,0 +1,21 @@
+# Databricks Asset Bundle for the Corvella Pay disputes project.
+# Deploy with: databricks bundle deploy -t dev   (see README, How to run)
+# Workspace host and token come from the environment (.env), never from this file.
+bundle:
+  name: corvella
+
+include:
+  - resources/*.yml
+
+variables:
+  warehouse_id:
+    description: SQL warehouse that runs dbt, found by name in each workspace.
+    lookup:
+      warehouse: "Serverless Starter Warehouse"
+
+targets:
+  dev:
+    # Development mode: resources are prefixed with "[dev <user>]",
+    # schedules are paused and files deploy to the user's own folder.
+    mode: development
+    default: true
