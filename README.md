@@ -69,10 +69,14 @@ Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboar
 | Python | 3.12 (same as Databricks serverless jobs) | `.python-version` |
 | dbt Core | 1.12 | Installed with dbt-databricks |
 | dbt-databricks | 1.13.0 | `requirements.txt` |
+| Databricks CLI | 1.22.1 | Installed separately (see How to run) |
 
 ## How to run
 
-Prerequisite: [uv](https://docs.astral.sh/uv/), used to create the Python environment. The project uses Python 3.12, the version Databricks serverless jobs run; uv downloads it if it is missing, without changing the system Python.
+Prerequisites:
+
+- [uv](https://docs.astral.sh/uv/), used to create the Python environment. The project uses Python 3.12, the version Databricks serverless jobs run; uv downloads it if it is missing, without changing the system Python.
+- [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install), used to deploy the jobs defined in `databricks.yml` and `resources/` (Databricks Asset Bundles).
 
 1. Create the virtual environment and install dbt (the version is pinned in `requirements.txt`):
 
@@ -95,6 +99,14 @@ Prerequisite: [uv](https://docs.astral.sh/uv/), used to create the Python enviro
     cd dbt
     dbt deps    # install dbt packages
     dbt debug   # check the connection to the SQL warehouse
+    ```
+
+4. Deploy and run the jobs with the Databricks CLI, from the repository root, in the same shell (the CLI reads the same variables from `.env`). The `dev` target prefixes every job with `[dev <your user>]`, so it does not clash with other people's jobs:
+
+    ```bash
+    databricks bundle validate                   # check the bundle files
+    databricks bundle deploy -t dev              # upload the code and create or update the jobs
+    databricks bundle run -t dev dbt_smoke_test  # run a job
     ```
 
 ## Project status
