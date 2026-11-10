@@ -60,6 +60,7 @@ flowchart LR
 | [006](docs/architecture_decision_records/adr-006-batch-processing.md) | Batch processing, no streaming |
 | [007](docs/architecture_decision_records/adr-007-merchant-scd2-from-versions.md) | Merchant type 2 history built from preserved versions, not dbt snapshots |
 | [008](docs/architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) | Jobs defined as code with Databricks Asset Bundles |
+| [009](docs/architecture_decision_records/adr-009-catalog-per-environment.md) | One catalog per environment, deployed as bundle targets |
 
 ## Tech stack
 
@@ -136,4 +137,4 @@ Next:
 
 - [Business context](docs/business_context.md) — company, payment lifecycle, dispute process, business questions, metrics, requirements and constraints.
 - [Solution design](docs/solution_design.md) — architecture, layers, source data, Unity Catalog layout, processing and orchestration.
-- [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-008).
+- [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-009).

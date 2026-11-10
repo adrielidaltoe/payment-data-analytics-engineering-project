@@ -200,3 +200,4 @@ Each decision is recorded in its own file:
 | [ADR-006](architecture_decision_records/adr-006-batch-processing.md) | Batch processing, no streaming |
 | [ADR-007](architecture_decision_records/adr-007-merchant-scd2-from-versions.md) | Merchant type 2 history built from preserved versions, not dbt snapshots |
 | [ADR-008](architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) | Jobs defined as code with Databricks Asset Bundles |
+| [ADR-009](architecture_decision_records/adr-009-catalog-per-environment.md) | One catalog per environment, deployed as bundle targets |
