@@ -71,7 +71,9 @@ Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboar
 | --- | --- | --- |
 | Python | 3.12 (same as Databricks serverless jobs) | `.python-version` |
 | dbt Core | 1.12 | Installed with dbt-databricks |
-| dbt-databricks | 1.13.0 | `requirements.txt` |
+| dbt-databricks | 1.13.0 | `pyproject.toml` (`dbt` group) |
+| ruff | 0.17.3 | `pyproject.toml` (`dev` group) |
+| pytest | 9.2.0 | `pyproject.toml` (`dev` group) |
 | Databricks CLI | 1.22.1 | Installed separately (see How to run) |
 
 ## How to run
@@ -81,11 +83,10 @@ Prerequisites:
 - [uv](https://docs.astral.sh/uv/), used to create the Python environment. The project uses Python 3.12, the version Databricks serverless jobs run; uv downloads it if it is missing, without changing the system Python.
 - [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install), used to deploy the jobs defined in `databricks.yml` and `resources/` (Databricks Asset Bundles).
 
-1. Create the virtual environment and install dbt (the version is pinned in `requirements.txt`):
+1. Create the virtual environment and install the project with its tools (dbt, ruff, pytest); versions are pinned in `pyproject.toml` and locked in `uv.lock`:
 
     ```bash
-    uv venv --python 3.12 .venv
-    uv pip install -r requirements.txt
+    uv sync
     source .venv/bin/activate
     ```
 
@@ -111,6 +112,16 @@ Prerequisites:
     databricks bundle deploy -t dev              # upload the code and create or update the jobs
     databricks bundle run -t dev dbt_smoke_test  # run a job
     ```
+
+### Checks
+
+Lint and unit tests run locally without Databricks (CI runs the same commands):
+
+```bash
+uv run ruff check .          # lint
+uv run ruff format --check . # formatting
+uv run pytest                # unit tests
+```
 
 ## Project status
 

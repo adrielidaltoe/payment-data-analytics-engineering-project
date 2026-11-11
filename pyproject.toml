@@ -1,0 +1,41 @@
+[project]
+name = "corvella"
+version = "0.1.0"
+description = "Corvella Pay disputes and chargebacks analytics on Databricks and dbt"
+readme = "README.md"
+# Same Python as Databricks serverless jobs (see .python-version).
+requires-python = ">=3.12,<3.13"
+# Runtime dependencies of src/corvella. PySpark is provided by Databricks and
+# will be added as a dev dependency when the generator gets unit tests.
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest==9.2.0",
+    "ruff==0.17.3",
+]
+dbt = [
+    "dbt-databricks==1.13.0",
+]
+
+[tool.uv]
+# `uv sync` installs both groups; CI can install only what each job needs
+# (for example `uv sync --only-group dev` for lint and tests).
+default-groups = ["dev", "dbt"]
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["dbt"]
+
+[tool.ruff.lint]
+# pycodestyle errors, pyflakes, import sorting, bugbear, pyupgrade
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
