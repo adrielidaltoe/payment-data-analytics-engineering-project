@@ -36,12 +36,13 @@ flowchart LR
 
 ## Identities and secrets
 
-Automation never uses a personal token. Two service principals keep pull request code away from production credentials:
+Developers use their own identity; automation never uses a personal token. CI doesn't deploy, but it still logs in to Databricks to validate the bundle and to run `dbt build`, which writes tables, so it gets its own service principal with access to `corvella_dev` only. That keeps pull request code away from production credentials:
 
-| Service principal | Used by | Access |
-| --- | --- | --- |
-| `corvella-ci` | CI, on pull requests | Use the SQL warehouse; read and write `corvella_dev` |
-| `corvella-deployer` | CD, on merge to `main`; `run_as` of prod jobs | Use the SQL warehouse; create the `corvella_prod` catalog; read and write it |
+| Identity | Used by | Logs in with | Access |
+| --- | --- | --- | --- |
+| Each developer | Local work: `bundle deploy -t dev`, `bundle run`, dbt | Their own user (token in `.env`) | Use the SQL warehouse; read and write `corvella_dev` |
+| `corvella-ci` (service principal) | CI, on pull requests: `bundle validate`, `dbt build` | OAuth client ID and secret | Use the SQL warehouse; read and write `corvella_dev` |
+| `corvella-deployer` (service principal) | CD, on merge to `main`; `run_as` of prod jobs | OAuth client ID and secret | Use the SQL warehouse; create the `corvella_prod` catalog; read and write it |
 
 Each logs in with OAuth (a client ID and secret), which issues short-lived tokens automatically. Catalog and schema access is granted in the bundle (`grants` on the catalog resources), so permissions are reviewed like code; warehouse access and the right to create catalogs are set once by an admin.
 
