@@ -1,6 +1,6 @@
 # Environments and CI/CD
 
-Code reaches production in one way only: a feature branch, a pull request that passes CI, and a merge to `main` that CD deploys to the `prod` bundle target. Developers deploy to `dev` from their own machines; automation never deploys on pull requests. The decisions behind this are [ADR-008](architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) (jobs as code with Databricks Asset Bundles) and [ADR-009](architecture_decision_records/adr-009-catalog-per-environment.md) (one catalog per environment).
+Code reaches production in one way only: a feature branch, a pull request that passes CI, and a merge to `main` that CD deploys to the `prod` bundle target. Developers deploy to `dev` from their own machines; automation never deploys on pull requests. The decisions behind this are [ADR-008](architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) (jobs as code with Databricks Asset Bundles), [ADR-009](architecture_decision_records/adr-009-catalog-per-environment.md) (one catalog per environment).
 
 ```mermaid
 flowchart LR
@@ -50,7 +50,7 @@ Each logs in with OAuth (a client ID and secret), which issues short-lived token
 | `DATABRICKS_HOST` | Repository | Workspace URL |
 | `DATABRICKS_HTTP_PATH` | Repository | SQL warehouse HTTP path, for `dbt build` in CI |
 | `DATABRICKS_CLIENT_ID`, `DATABRICKS_CLIENT_SECRET` | Repository | `corvella-ci` credentials |
-| `DATABRICKS_CLIENT_ID`, `DATABRICKS_CLIENT_SECRET` | GitHub environment `prod` | `corvella-deployer` credentials; only the CD workflow can read them |
+| `DATABRICKS_CLIENT_ID`, `DATABRICKS_CLIENT_SECRET` | GitHub environment `prod`, restricted to `main` | `corvella-deployer` credentials; only the CD workflow can read them, and they override the repository values of the same name |
 
 ## CI: on every pull request
 
