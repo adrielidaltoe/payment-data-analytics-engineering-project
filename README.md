@@ -65,7 +65,7 @@ flowchart LR
 
 ## Tech stack
 
-Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboards, Genie) · PySpark · dbt Core with dbt-databricks · GitHub Actions
+Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboards, Genie) · PySpark · dbt Core with dbt-databricks · GitHub Actions · ruff · sqlfluff · pytest
 
 | Tool | Version | Where it is set |
 | --- | --- | --- |
@@ -74,6 +74,7 @@ Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboar
 | dbt-databricks | 1.13.0 | `pyproject.toml` (`dbt` group) |
 | ruff | 0.17.3 | `pyproject.toml` (`dev` group) |
 | pytest | 9.2.0 | `pyproject.toml` (`dev` group) |
+| sqlfluff | 4.4.0 | `pyproject.toml` (`dev` group); rules in `dbt/.sqlfluff` |
 | Databricks CLI | 1.22.1 | Installed separately (see How to run) |
 
 ## How to run
@@ -115,11 +116,12 @@ Prerequisites:
 
 ### Checks
 
-Lint and unit tests run locally without Databricks (CI runs the same commands):
+Lint and unit tests run locally without Databricks (CI runs the same commands). sqlfluff checks the dbt models' SQL style; `sqlfluff fix` corrects most issues automatically:
 
 ```bash
 uv run ruff check .          # lint
 uv run ruff format --check . # formatting
+uv run sqlfluff lint dbt      # SQL style of the dbt models
 uv run pytest                # unit tests
 ```
 

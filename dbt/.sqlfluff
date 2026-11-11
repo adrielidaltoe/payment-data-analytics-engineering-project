@@ -1,0 +1,45 @@
+# SQL style for the dbt models, enforced by sqlfluff (see README, Checks).
+# The jinja templater renders dbt's Jinja without a warehouse connection,
+# so linting runs in the first, free CI stage.
+
+[sqlfluff]
+dialect = databricks
+templater = jinja
+max_line_length = 100
+
+[sqlfluff:templater:jinja]
+# Stand-ins for ref(), source(), config(), var() and is_incremental().
+apply_dbt_builtins = True
+# Stand-ins for package macros such as dbt_utils (see sqlfluff_libs/).
+library_path = sqlfluff_libs
+
+[sqlfluff:indentation]
+indent_unit = space
+tab_space_size = 4
+
+# Everything lowercase: keywords, functions, literals like null/true, identifiers.
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.types]
+extended_capitalisation_policy = lower
+
+# Aliases always use "as".
+[sqlfluff:rules:aliasing.table]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.column]
+aliasing = explicit
+
+# Trailing commas, one column per line in select lists.
+[sqlfluff:layout:type:comma]
+line_position = trailing

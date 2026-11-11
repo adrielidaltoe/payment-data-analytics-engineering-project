@@ -9,7 +9,7 @@ before designing models or metrics.
 
 ## Stack (fixed — don't add tools)
 
-- Databricks Free Edition + Unity Catalog + Asset Bundles + Databricks CLI + GitHub Actions + ruff + pytest
+- Databricks Free Edition + Unity Catalog + Asset Bundles + Databricks CLI + GitHub Actions + ruff + pytest + sqlfluff
 - dbt for all transformations
 - PySpark for synthetic source data (~1% of real scale)
 - Databricks AI/BI for dashboards
@@ -22,6 +22,11 @@ before designing models or metrics.
 - Source column names follow the "Data produced at each stage" tables in docs/business_context.md.
 - Keep history (SCD2 / event tables); never overwrite status or merchant attributes.
 - Use the metric definitions in docs/business_context.md; don't invent alternatives.
+
+## Code style
+
+- Python: ruff (settings in `pyproject.toml`). SQL in dbt models: sqlfluff (settings in `dbt/.sqlfluff`): lowercase, explicit `as` aliases, trailing commas.
+- Run `uv run sqlfluff fix dbt` before committing SQL. When a model uses a new package macro, add a stand-in to `dbt/sqlfluff_libs/`.
 
 ## Secrets and connections
 
