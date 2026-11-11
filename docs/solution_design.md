@@ -202,3 +202,4 @@ Each decision is recorded in its own file:
 | [ADR-008](architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) | Jobs defined as code with Databricks Asset Bundles |
 | [ADR-009](architecture_decision_records/adr-009-catalog-per-environment.md) | One catalog per environment, deployed as bundle targets |
 | [ADR-010](architecture_decision_records/adr-010-service-principals.md) | Automation and prod jobs run as service principals |
+| [ADR-011](architecture_decision_records/adr-011-single-repository.md) | One repository for pipeline code and dbt |
