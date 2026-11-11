@@ -60,6 +60,8 @@ flowchart LR
 | [006](docs/architecture_decision_records/adr-006-batch-processing.md) | Batch processing, no streaming |
 | [007](docs/architecture_decision_records/adr-007-merchant-scd2-from-versions.md) | Merchant type 2 history built from preserved versions, not dbt snapshots |
 | [008](docs/architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) | Jobs defined as code with Databricks Asset Bundles |
+| [009](docs/architecture_decision_records/adr-009-catalog-per-environment.md) | One catalog per environment, deployed as bundle targets |
+| [010](docs/architecture_decision_records/adr-010-service-principals.md) | Automation and prod jobs run as service principals |
 
 ## Tech stack
 
@@ -121,7 +123,7 @@ Done:
 
 Next:
 
-- [ ] Repository, environments (dev and prod) and CI skeleton
+- [ ] Repository, environments (dev and prod) and CI/CD with Asset Bundles ([plan](docs/environments_and_cicd.md))
 - [ ] Source data generation: detailed spec and generator
 - [ ] Schema for each layer and the gold dimensional model
 - [ ] Semantic layer and metric definitions
@@ -129,11 +131,11 @@ Next:
 - [ ] Governance and security: permissions, masks, row filters
 - [ ] Consumption: work queue, Risk dashboard, Genie space
 - [ ] Data monitoring
-- [ ] Jobs as code and deployment
 - [ ] Documentation and portfolio packaging
 
 ## Documentation
 
 - [Business context](docs/business_context.md) — company, payment lifecycle, dispute process, business questions, metrics, requirements and constraints.
 - [Solution design](docs/solution_design.md) — architecture, layers, source data, Unity Catalog layout, processing and orchestration.
-- [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-008).
+- [Environments and CI/CD](docs/environments_and_cicd.md) — dev and prod targets, identities and secrets, CI and CD workflows, repository rules and implementation steps.
+- [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-010).
