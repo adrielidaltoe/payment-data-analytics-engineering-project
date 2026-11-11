@@ -62,16 +62,20 @@ flowchart LR
 | [008](docs/architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) | Jobs defined as code with Databricks Asset Bundles |
 | [009](docs/architecture_decision_records/adr-009-catalog-per-environment.md) | One catalog per environment, deployed as bundle targets |
 | [010](docs/architecture_decision_records/adr-010-service-principals.md) | Automation and prod jobs run as service principals |
+| [011](docs/architecture_decision_records/adr-011-single-repository.md) | One repository for pipeline code and dbt |
 
 ## Tech stack
 
-Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboards, Genie) · PySpark · dbt Core with dbt-databricks · GitHub Actions
+Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboards, Genie) · PySpark · dbt Core with dbt-databricks · GitHub Actions · ruff · sqlfluff · pytest
 
 | Tool | Version | Where it is set |
 | --- | --- | --- |
 | Python | 3.12 (same as Databricks serverless jobs) | `.python-version` |
 | dbt Core | 1.12 | Installed with dbt-databricks |
-| dbt-databricks | 1.13.0 | `requirements.txt` |
+| dbt-databricks | 1.13.0 | `pyproject.toml` (`dbt` group) |
+| ruff | 0.17.3 | `pyproject.toml` (`dev` group) |
+| pytest | 9.2.0 | `pyproject.toml` (`dev` group) |
+| sqlfluff | 4.4.0 | `pyproject.toml` (`dev` group); rules in `dbt/.sqlfluff` |
 | Databricks CLI | 1.22.1 | Installed separately (see How to run) |
 
 ## How to run
@@ -81,11 +85,10 @@ Prerequisites:
 - [uv](https://docs.astral.sh/uv/), used to create the Python environment. The project uses Python 3.12, the version Databricks serverless jobs run; uv downloads it if it is missing, without changing the system Python.
 - [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install), used to deploy the jobs defined in `databricks.yml` and `resources/` (Databricks Asset Bundles).
 
-1. Create the virtual environment and install dbt (the version is pinned in `requirements.txt`):
+1. Create the virtual environment and install the project with its tools (dbt, ruff, pytest); versions are pinned in `pyproject.toml` and locked in `uv.lock`:
 
     ```bash
-    uv venv --python 3.12 .venv
-    uv pip install -r requirements.txt
+    uv sync
     source .venv/bin/activate
     ```
 
@@ -111,6 +114,17 @@ Prerequisites:
     databricks bundle deploy -t dev              # upload the code and create or update the jobs
     databricks bundle run -t dev dbt_smoke_test  # run a job
     ```
+
+### Checks
+
+Lint and unit tests run locally without Databricks (CI runs the same commands). sqlfluff checks the dbt models' SQL style; `sqlfluff fix` corrects most issues automatically:
+
+```bash
+uv run ruff check .          # lint
+uv run ruff format --check . # formatting
+uv run sqlfluff lint dbt      # SQL style of the dbt models
+uv run pytest                # unit tests
+```
 
 ## Project status
 
@@ -138,4 +152,4 @@ Next:
 - [Business context](docs/business_context.md) — company, payment lifecycle, dispute process, business questions, metrics, requirements and constraints.
 - [Solution design](docs/solution_design.md) — architecture, layers, source data, Unity Catalog layout, processing and orchestration.
 - [Environments and CI/CD](docs/environments_and_cicd.md) — dev and prod targets, identities and secrets, CI and CD workflows, repository rules and implementation steps.
-- [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-010).
+- [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-011).

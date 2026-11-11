@@ -9,3 +9,8 @@ dbt/.user.yml
 
 # Databricks bundle local state
 .databricks/
+
+# Python caches
+__pycache__/
+.pytest_cache/
+.ruff_cache/

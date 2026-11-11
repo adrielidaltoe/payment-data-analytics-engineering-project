@@ -1,6 +1,6 @@
 # Smoke test job: proves a dbt task deployed by the bundle can install packages,
 # connect to the SQL warehouse and write to Unity Catalog.
-# Same task as the UI-made job in databricks/jobs/dbt-smoke-test.json, but the
+# Same task as the UI-made job in docs/reference/dbt-smoke-test.json, but the
 # code comes from the files uploaded by `bundle deploy`, not from a Git clone.
 resources:
   jobs:

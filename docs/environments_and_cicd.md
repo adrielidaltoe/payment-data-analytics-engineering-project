@@ -59,7 +59,7 @@ Steps run from cheapest to most expensive; each runs only if the previous one pa
 
 | # | Step | Runs when |
 | --- | --- | --- |
-| 1 | `ruff check` and `ruff format --check` | Always |
+| 1 | `ruff check`, `ruff format --check` and `sqlfluff lint dbt` | Always |
 | 2 | `pytest` | Always |
 | 3 | `databricks bundle validate -t dev` and `-t prod` | The pull request comes from this repository (forks get no secrets) |
 | 4 | `dbt deps` and `dbt build` against `corvella_dev` | Same, and the pull request changes `dbt/` |
@@ -109,7 +109,7 @@ The workflow runs in the GitHub environment `prod`, as `corvella-deployer`, with
 
 Each step ends with a check that proves it works.
 
-1. **Repository layout.** `pyproject.toml` (dependencies, ruff and pytest settings), an empty `src/corvella/` package, `tests/` with one test, the reference job moved to `docs/reference/`. *Check:* `ruff check` and `pytest` pass locally.
+1. **Repository layout.** `pyproject.toml` (dependencies, ruff and pytest settings), an empty `src/corvella/` package, `tests/` with one test, sqlfluff for the dbt SQL (`dbt/.sqlfluff`), the reference job moved to `docs/reference/`. *Check:* `ruff check`, `sqlfluff lint dbt` and `pytest` pass locally.
 2. **Service principals.** Create `corvella-ci` and `corvella-deployer` with OAuth secrets, let both use the SQL warehouse, allow `corvella-deployer` to create catalogs, and add the GitHub secrets and the `prod` environment. *Check:* the CLI logs in as each one.
 3. **Bundle environments.** `catalog` variable, `dev` and `prod` targets (prod in production mode, paused preset, `run_as` `corvella-deployer`), `resources/catalog.yml` with the grants from the identities table, the smoke test job on `${var.catalog}`. *Check:* `bundle validate -t prod` shows paused jobs run as the deployer; `bundle deploy -t dev` creates `corvella_dev` with its schemas, volumes and grants; the smoke test job runs in dev.
 4. **dbt.** `profiles.yml` catalog from `DBT_CATALOG`, `.env.example` updated. *Check:* `dbt build` locally against `corvella_dev`.
