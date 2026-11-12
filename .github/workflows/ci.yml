@@ -1,0 +1,87 @@
+# CI on every pull request to main (see docs/environments_and_cicd.md).
+# Steps run from cheapest to most expensive; CI never deploys.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A new push to the same pull request cancels the run still in progress.
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+
+      # Lint and test tools only; dbt is installed by the databricks job.
+      - name: Install Python and dev tools
+        run: |
+          uv sync --locked --no-group dbt
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: sqlfluff lint dbt
+      - run: pytest
+
+  databricks:
+    name: Bundle validate and dbt build
+    needs: checks
+    # Pull requests from forks get no secrets, so they stop after the checks.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    # corvella-ci service principal: read and write on corvella_dev only.
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # full history, to compare with main below
+
+      # The tag pins the CLI version (same as locally).
+      - uses: databricks/setup-cli@8de769ec2543ee05e456ee2121350efc7efc4bda # v1.22.1
+
+      - run: databricks bundle validate -t dev
+      - run: databricks bundle validate -t prod
+
+      - name: Check for dbt changes
+        id: changes
+        run: |
+          if git diff --quiet "origin/${{ github.base_ref }}...HEAD" -- dbt/; then
+            echo "dbt=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "dbt=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.changes.outputs.dbt == 'true'
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+
+      - name: Install dbt
+        if: steps.changes.outputs.dbt == 'true'
+        run: |
+          uv sync --locked --only-group dbt
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: dbt build on corvella_dev
+        if: steps.changes.outputs.dbt == 'true'
+        working-directory: dbt
+        run: |
+          dbt deps
+          dbt build --target ci
