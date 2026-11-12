@@ -21,11 +21,12 @@ grant use catalog, use schema, create schema, create table, select, modify
 on catalog corvella_dev
 to `06e3ba93-aa6c-4b9b-9e9f-f0b62bdf86f7`;
 
--- Read access to prod for the admin running this script. It must come before
--- the owner change: workspace admins aren't metastore admins in Free Edition,
--- so after it only the new owner could grant access. Replace <admin user> with
+-- Read access to prod tables and volume files for the admin running this
+-- script. It must come before the owner change: workspace admins aren't
+-- metastore admins in Free Edition, so after it only the new owner could
+-- grant access. Replace <admin user> with
 -- your login email when running; never commit it.
-grant use catalog, use schema, select
+grant use catalog, use schema, select, read volume
 on catalog corvella_prod
 to `<admin user>`;
 
