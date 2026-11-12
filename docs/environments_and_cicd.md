@@ -34,7 +34,7 @@ flowchart LR
 
 **Data structure as code.** `resources/catalog.yml` defines the four schemas and the landing volumes (`source_history`, `inbox`, `_checkpoints`) in `${var.catalog}`, so deploying a target creates its data structure. The `landing` schema and the `source_history` volume have `lifecycle: prevent_destroy`, so `bundle destroy` can't delete the source data.
 
-**dbt locally.** `profiles.yml` keeps a single output whose catalog comes from `env_var('DBT_CATALOG', 'corvella_dev')`. There is no prod output: only prod jobs write to `corvella_prod`. Jobs don't use `profiles.yml`; the dbt task builds its profile from the warehouse and the catalog it is given.
+**dbt profiles.** `profiles.yml` has two outputs. `dev`, the default, logs in with the developer's token and takes its catalog from `env_var('DBT_CATALOG', 'corvella_dev')`. `ci` logs in as `corvella-ci` with its OAuth client ID and secret and writes to `corvella_dev`; it is used only by CI (`dbt build --target ci`). dbt reads only the variables of the output it uses, so developers don't need the CI secrets. There is no prod output: only prod jobs write to `corvella_prod`. Jobs don't use `profiles.yml`; the dbt task builds its profile from the warehouse and the catalog it is given.
 
 **Turning prod schedules on.** A pull request removes the `presets` line from the `prod` target. After the merge, CD deploys and each job follows its own schedule. A job unpaused by hand in the UI is paused again by the next deploy, so the bundle stays the single source of truth.
 
@@ -68,7 +68,7 @@ Steps run from cheapest to most expensive; each runs only if the previous one pa
 | 3 | `databricks bundle validate -t dev` and `-t prod` | The pull request comes from this repository (forks get no secrets) |
 | 4 | `dbt deps` and `dbt build` against `corvella_dev` | Same, and the pull request changes `dbt/` |
 
-CI does not deploy. dbt runs with the `corvella-ci` identity and writes to `corvella_dev`, the same catalog developers use (see ADR-009). The Databricks CLI is installed with the `databricks/setup-cli` action, pinned to the same version as locally.
+CI does not deploy. The workflow is `.github/workflows/ci.yml`, with two jobs: `checks` (steps 1 and 2) and `databricks` (steps 3 and 4), which runs only after `checks` passes. dbt runs with the `ci` output, as `corvella-ci`, and writes to `corvella_dev`, the same catalog developers use (see ADR-009); step 4 finds `dbt/` changes with `git diff` against `main`. The workflow token is read-only, a new push cancels the run in progress, and every action is pinned to a commit SHA. uv and the Databricks CLI (installed with `databricks/setup-cli`) are pinned to the same versions as locally.
 
 ## CD: on merge to `main`
 
