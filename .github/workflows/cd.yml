@@ -1,0 +1,39 @@
+# CD: deploys the prod bundle target on every push to main (see
+# docs/environments_and_cicd.md). Pull requests are checked by CI first.
+name: CD
+
+on:
+  push:
+    branches: [main]
+  # Redeploy by hand, for example after a failed run.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time. A deploy in progress is never cancelled, so the next
+# one waits for it instead of interrupting it halfway.
+concurrency:
+  group: cd-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy prod
+    runs-on: ubuntu-latest
+    # The prod environment only accepts main and holds the corvella-deployer
+    # client ID and secret, which override the repository's corvella-ci ones.
+    environment: prod
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The tag pins the CLI version (same as locally and in CI).
+      - uses: databricks/setup-cli@8de769ec2543ee05e456ee2121350efc7efc4bda # v1.22.1
+
+      - run: databricks bundle validate -t prod
+      - run: databricks bundle deploy -t prod
+      - run: databricks bundle summary -t prod
