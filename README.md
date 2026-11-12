@@ -107,7 +107,9 @@ Prerequisites:
     dbt debug   # check the connection to the SQL warehouse
     ```
 
-4. Deploy and run the jobs with the Databricks CLI, from the repository root, in the same shell (the CLI reads the same variables from `.env`). The `dev` target prefixes every job with `[dev <your user>]`, so it does not clash with other people's jobs:
+4. Once per workspace, an admin creates the `corvella_dev` and `corvella_prod` catalogs with [`setup/catalogs.sql`](setup/catalogs.sql), in the SQL editor (replace `<admin user>` with your login first). Bundles can't create catalogs in Free Edition; see the [environments plan](docs/environments_and_cicd.md).
+
+5. Deploy and run the jobs with the Databricks CLI, from the repository root, in the same shell (the CLI reads the same variables from `.env`). The `dev` target deploys to `corvella_dev` and prefixes every job with `[dev]`; its schedules stay paused:
 
     ```bash
     databricks bundle validate                   # check the bundle files
