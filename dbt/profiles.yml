@@ -8,6 +8,8 @@ corvella:
       host: "{{ env_var('DATABRICKS_HOST') }}"
       http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
       token: "{{ env_var('DATABRICKS_TOKEN') }}"
-      catalog: corvella
+      # corvella_dev unless DBT_CATALOG says otherwise. There is no prod output:
+      # only prod jobs, deployed by CD, write to corvella_prod.
+      catalog: "{{ env_var('DBT_CATALOG', 'corvella_dev') }}"
       schema: smoke_test
       threads: 4
