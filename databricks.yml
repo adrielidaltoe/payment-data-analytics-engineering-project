@@ -1,6 +1,3 @@
-# Databricks Asset Bundle for the Corvella Pay disputes project.
-# Deploy with: databricks bundle deploy -t dev   (see README, How to run)
-# Workspace host and token come from the environment (.env), never from this file.
 bundle:
   name: corvella
 
@@ -8,14 +5,37 @@ include:
   - resources/*.yml
 
 variables:
+  catalog:
+    description: Unity Catalog catalog of the environment (corvella_dev or corvella_prod).
   warehouse_id:
     description: SQL warehouse that runs dbt, found by name in each workspace.
     lookup:
       warehouse: "Serverless Starter Warehouse"
 
+# Both targets live in the same workspace. Job names start with [${bundle.target}],
+# and both catalogs have the same schemas (landing, bronze, silver, gold).
+# The dev target doesn't use development mode, which would prefix every schema
+# with the developer's name.
 targets:
+  # Each developer deploys from their machine.
   dev:
-    # Development mode: resources are prefixed with "[dev <user>]",
-    # schedules are paused and files deploy to the user's own folder.
-    mode: development
     default: true
+    variables:
+      catalog: corvella_dev
+    presets:
+      trigger_pause_status: PAUSED
+
+  # Deployed only by CD, as corvella-deployer, on merge to main. The deployer
+  # owns corvella_prod (setup/catalogs.sql), so it needs no grants.
+  prod:
+    mode: production
+    variables:
+      catalog: corvella_prod
+    workspace:
+      # One copy of prod, in the deployer's folder, whoever deploys.
+      root_path: /Workspace/Users/fec3766d-e428-4609-957c-db98b1dfa9f6/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: fec3766d-e428-4609-957c-db98b1dfa9f6
+    presets:
+      # Remove this line to turn prod schedules on.
+      trigger_pause_status: PAUSED

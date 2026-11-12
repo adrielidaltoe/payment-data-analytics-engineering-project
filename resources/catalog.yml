@@ -1,0 +1,47 @@
+# Data structure of one environment: the medallion schemas and the landing
+# volumes, inside the catalog of the target (corvella_dev or corvella_prod, see
+# databricks.yml). The catalogs themselves and their grants are created once
+# with setup/catalogs.sql: Free Edition's Default Storage doesn't let bundles
+# create catalogs.
+resources:
+  schemas:
+    landing:
+      catalog_name: ${var.catalog}
+      name: landing
+      comment: Raw source files as they arrive (UC volumes)
+      lifecycle:
+        prevent_destroy: true
+    bronze:
+      catalog_name: ${var.catalog}
+      name: bronze
+      comment: Append-only copies of the source files, loaded by Auto Loader
+    silver:
+      catalog_name: ${var.catalog}
+      name: silver
+      comment: Cleaned, deduplicated and conformed models (dbt)
+    gold:
+      catalog_name: ${var.catalog}
+      name: gold
+      comment: Facts, dimensions and metrics for dashboards (dbt)
+
+  volumes:
+    source_history:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.landing.name}
+      name: source_history
+      volume_type: MANAGED
+      comment: Generated source data, written once and replayed by arrival time
+      lifecycle:
+        prevent_destroy: true
+    inbox:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.landing.name}
+      name: inbox
+      volume_type: MANAGED
+      comment: Files delivered by the replay, read by ingestion
+    checkpoints:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.landing.name}
+      name: _checkpoints
+      volume_type: MANAGED
+      comment: Auto Loader checkpoints and schema tracking

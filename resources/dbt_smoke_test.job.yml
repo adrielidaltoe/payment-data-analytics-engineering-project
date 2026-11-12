@@ -5,7 +5,7 @@
 resources:
   jobs:
     dbt_smoke_test:
-      name: dbt-smoke-test
+      name: "[${bundle.target}] dbt-smoke-test"
       max_concurrent_runs: 1
 
       tasks:
@@ -18,7 +18,7 @@ resources:
               - "dbt debug"
               - "dbt run --select smoke_test"
             warehouse_id: ${var.warehouse_id}
-            catalog: corvella
+            catalog: ${var.catalog}
             schema: smoke_test
 
       environments:

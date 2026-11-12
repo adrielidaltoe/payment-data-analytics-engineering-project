@@ -15,20 +15,24 @@ flowchart LR
 
 | | dev | prod |
 | --- | --- | --- |
-| Bundle target | `dev`, development mode | `prod`, production mode |
+| Bundle target | `dev` | `prod`, production mode |
 | Catalog | `corvella_dev` | `corvella_prod` |
 | Schemas | `landing`, `bronze`, `silver`, `gold` | Same |
 | Deployed by | Each developer, from their machine (`databricks bundle deploy -t dev`) | CD only, on merge to `main` |
-| Job names | Prefixed with `[dev <user>]` | As defined |
-| Schedules | Paused (development mode) | Paused with the `trigger_pause_status: PAUSED` preset until the pipeline is ready |
+| Job names | Prefixed with `[dev]` | Prefixed with `[prod]` |
+| Schedules | Always paused, with the `trigger_pause_status: PAUSED` preset | Paused with the same preset until the pipeline is ready |
 | Jobs run as | The developer | Service principal `corvella-deployer` |
 
 **Configuration.** Everything that differs between environments is a bundle variable set per target:
 
-- `catalog`: `corvella_dev` or `corvella_prod`. It is passed to every job, to the dbt task (`catalog: ${var.catalog}`) and to the catalog resources.
+- `catalog`: `corvella_dev` or `corvella_prod`. It is passed to every job, to the dbt task (`catalog: ${var.catalog}`) and to the schema and volume resources.
 - `warehouse_id`: found by name with a `lookup`, as today.
 
-**Data structure as code.** `resources/catalog.yml` defines the catalog, its four schemas and the landing volumes (`source_history`, `inbox`, `_checkpoints`) with `${var.catalog}`, so deploying a target creates its data structure. If the catalog resource type misbehaves in Free Edition, the two catalogs are created once with SQL and only schemas and volumes stay in the bundle.
+**Why `dev` doesn't use development mode.** Development mode prefixes job names with the developer's name and pauses schedules, but it also prefixes every Unity Catalog schema (`dev_<user>_bronze`), and no setting turns that off for schemas alone. That would make the schemas differ between catalogs. So `dev` pauses schedules with the `trigger_pause_status` preset, and every job name starts with `[${bundle.target}]`, which tells the two environments apart in the shared workspace (ADR-009).
+
+**Catalogs, once, with SQL.** Free Edition stores managed data in Default Storage, and the API that bundles use to create catalogs fails there. So `setup/catalogs.sql`, run once by an admin before the first deploy, creates `corvella_dev` and `corvella_prod`, grants `corvella-ci` read and write on `corvella_dev`, grants the admin read access on `corvella_prod` and then makes `corvella-deployer` its owner. The order matters: Free Edition users are workspace admins but not metastore admins, so after the owner change only the deployer could grant access. The script can be run again safely.
+
+**Data structure as code.** `resources/catalog.yml` defines the four schemas and the landing volumes (`source_history`, `inbox`, `_checkpoints`) in `${var.catalog}`, so deploying a target creates its data structure. The `landing` schema and the `source_history` volume have `lifecycle: prevent_destroy`, so `bundle destroy` can't delete the source data.
 
 **dbt locally.** `profiles.yml` keeps a single output whose catalog comes from `env_var('DBT_CATALOG', 'corvella_dev')`. There is no prod output: only prod jobs write to `corvella_prod`. Jobs don't use `profiles.yml`; the dbt task builds its profile from the warehouse and the catalog it is given.
 
@@ -40,11 +44,11 @@ Developers use their own identity; automation never uses a personal token. CI do
 
 | Identity | Used by | Logs in with | Access |
 | --- | --- | --- | --- |
-| Each developer | Local work: `bundle deploy -t dev`, `bundle run`, dbt | Their own user (token in `.env`) | Use the SQL warehouse; read and write `corvella_dev` |
+| Each developer | Local work: `bundle deploy -t dev`, `bundle run`, dbt | Their own user (token in `.env`) | Use the SQL warehouse; read and write `corvella_dev`; the admin also reads `corvella_prod` |
 | `corvella-ci` (service principal) | CI, on pull requests: `bundle validate`, `dbt build` | OAuth client ID and secret | Use the SQL warehouse; read and write `corvella_dev` |
-| `corvella-deployer` (service principal) | CD, on merge to `main`; `run_as` of prod jobs | OAuth client ID and secret | Use the SQL warehouse; create the `corvella_prod` catalog; read and write it |
+| `corvella-deployer` (service principal) | CD, on merge to `main`; `run_as` of prod jobs | OAuth client ID and secret | Use the SQL warehouse; owns `corvella_prod` |
 
-Each logs in with OAuth (a client ID and secret), which issues short-lived tokens automatically. Catalog and schema access is granted in the bundle (`grants` on the catalog resources), so permissions are reviewed like code; warehouse access and the right to create catalogs are set once by an admin.
+Each logs in with OAuth (a client ID and secret), which issues short-lived tokens automatically. Catalog access and owners are set in `setup/catalogs.sql`, so permissions are reviewed like code; schemas and tables inherit them. Warehouse access is set once by an admin.
 
 | GitHub secret | Scope | Value |
 | --- | --- | --- |
@@ -71,7 +75,7 @@ CI does not deploy. dbt runs with the `corvella-ci` identity and writes to `corv
 1. `databricks bundle validate -t prod`
 2. `databricks bundle deploy -t prod`
 
-The workflow runs in the GitHub environment `prod`, as `corvella-deployer`, with a `concurrency` group so two merges never deploy at the same time. The first deploy creates `corvella_prod`, its schemas and volumes, and the jobs, all paused.
+The workflow runs in the GitHub environment `prod`, as `corvella-deployer`, with a `concurrency` group so two merges never deploy at the same time. The first deploy creates the schemas and volumes in `corvella_prod` and the jobs, all paused.
 
 ## Repository rules
 
@@ -85,10 +89,11 @@ The workflow runs in the GitHub environment `prod`, as `corvella-deployer`, with
 .
 ├── databricks.yml               # bundle: variables, targets (dev, prod)
 ├── resources/                   # bundle resources, one file per concern
-│   ├── catalog.yml              #   catalog, schemas, volumes
+│   ├── catalog.yml              #   schemas, volumes
 │   ├── source_simulator.job.yml
 │   ├── ingestion.job.yml
 │   └── transformation.job.yml
+├── setup/catalogs.sql           # one-time: catalogs, grants, owners
 ├── src/corvella/                # Python package, used by jobs and tests
 │   ├── generator/               #   PySpark source data generator
 │   ├── simulator/               #   replay into the inbox
@@ -110,10 +115,10 @@ The workflow runs in the GitHub environment `prod`, as `corvella-deployer`, with
 Each step ends with a check that proves it works.
 
 1. **Repository layout.** `pyproject.toml` (dependencies, ruff and pytest settings), an empty `src/corvella/` package, `tests/` with one test, sqlfluff for the dbt SQL (`dbt/.sqlfluff`), the reference job moved to `docs/reference/`. *Check:* `ruff check`, `sqlfluff lint dbt` and `pytest` pass locally.
-2. **Service principals.** Create `corvella-ci` and `corvella-deployer` with OAuth secrets, let both use the SQL warehouse, allow `corvella-deployer` to create catalogs, and add the GitHub secrets and the `prod` environment. *Check:* the CLI logs in as each one.
-3. **Bundle environments.** `catalog` variable, `dev` and `prod` targets (prod in production mode, paused preset, `run_as` `corvella-deployer`), `resources/catalog.yml` with the grants from the identities table, the smoke test job on `${var.catalog}`. *Check:* `bundle validate -t prod` shows paused jobs run as the deployer; `bundle deploy -t dev` creates `corvella_dev` with its schemas, volumes and grants; the smoke test job runs in dev.
+2. **Service principals.** Create `corvella-ci` and `corvella-deployer` with OAuth secrets, let both use the SQL warehouse, allow `corvella-deployer` to create catalogs (no longer needed, see step 3), and add the GitHub secrets and the `prod` environment. *Check:* the CLI logs in as each one.
+3. **Bundle environments.** `catalog` variable, `dev` and `prod` targets (both with the paused preset; prod in production mode, with `run_as` and `root_path` set to `corvella-deployer`), job names prefixed with the target, `setup/catalogs.sql` for the catalogs and grants from the identities table, `resources/catalog.yml` with the schemas and volumes, the smoke test job on `${var.catalog}`. *Check:* the script creates both catalogs with their grants and owners; `bundle validate -t prod` shows paused jobs run as the deployer; `bundle deploy -t dev` creates the schemas and volumes in `corvella_dev`; the smoke test job runs in dev.
 4. **dbt.** `profiles.yml` catalog from `DBT_CATALOG`, `.env.example` updated. *Check:* `dbt build` locally against `corvella_dev`.
 5. **CI workflow.** `.github/workflows/ci.yml`. *Check:* a test pull request runs all four steps green, as `corvella-ci`.
-6. **CD workflow.** `.github/workflows/cd.yml`. *Check:* the first merge creates `corvella_prod` and the prod jobs, paused, run as `corvella-deployer`.
+6. **CD workflow.** `.github/workflows/cd.yml`. *Check:* the first merge creates the schemas and volumes in `corvella_prod` and the prod jobs, paused, run as `corvella-deployer`.
 7. **Branch protection.** Protect `main` and require the CI checks. *Check:* a direct push to `main` is rejected.
-8. **Clean up.** Destroy the old dev smoke test deployment, drop the `corvella` catalog, update the README (How to run, status). *Check:* only `corvella_dev` and `corvella_prod` remain.
+8. **Clean up.** Drop the `corvella` catalog and the `smoke_test` schema in `corvella_dev`, revoke `CREATE_CATALOG` from `corvella-deployer`, update the README (How to run, status). *Check:* only `corvella_dev` and `corvella_prod` remain.
