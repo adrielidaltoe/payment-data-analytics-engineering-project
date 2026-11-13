@@ -94,10 +94,10 @@ The generator produces one set of files per source system, each with its own for
 
 ## Unity Catalog organization
 
-Everything lives in one catalog, `corvella`, with one schema per layer:
+Each environment has its own catalog, `corvella_dev` and `corvella_prod`, with the same schemas, one per layer ([ADR-009](architecture_decision_records/adr-009-catalog-per-environment.md)):
 
 ```
-corvella (catalog)
+corvella_dev / corvella_prod (catalog)
 ├── landing   volumes: source_history, inbox, _checkpoints
 ├── bronze    raw tables, loaded by PySpark
 ├── silver    cleaned and linked tables, built by dbt
@@ -107,7 +107,7 @@ corvella (catalog)
 The inbox volume is organized by source and arrival date:
 
 ```
-/Volumes/corvella/landing/inbox/
+/Volumes/<catalog>/landing/inbox/
     gateway_events/arrival_date=2026-10-14/
     settlement_files/arrival_date=2026-10-16/
     dispute_notifications/arrival_date=2026-12-02/

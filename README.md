@@ -41,7 +41,7 @@ flowchart LR
     gold --> consumption["<b>Consumption</b><br/>dashboards,<br/>queue, Genie"]
 ```
 
-- **Medallion architecture** in one Unity Catalog catalog (`corvella`), with schemas `landing`, `bronze`, `silver` and `gold`.
+- **Medallion architecture** in Unity Catalog, one catalog per environment (`corvella_dev`, `corvella_prod`, see [ADR-009](docs/architecture_decision_records/adr-009-catalog-per-environment.md)), each with schemas `landing`, `bronze`, `silver` and `gold`.
 - **Generate once, replay by arrival time:** the full history is generated once, then released into the inbox day by day (or hour by hour), so the pipeline receives data the way it would from real source systems.
 - **Bronze** is append-only, loaded incrementally by Auto Loader with an `availableNow` trigger.
 - **Silver and gold** are dbt models executed on a Databricks SQL warehouse. Gold is a dimensional model: payment facts, a dispute accumulating snapshot, a type 2 merchant dimension and daily snapshots.
@@ -136,10 +136,10 @@ Done:
 - [x] Solution design and architecture decisions
 - [x] Smoke test for the dbt task in a Databricks Job
 - [x] Databricks Asset Bundles: smoke test job deployed and run from the bundle
+- [x] Repository, environments (dev and prod) and CI/CD with Asset Bundles ([plan](docs/environments_and_cicd.md)): pull requests run lint, tests, bundle validation and `dbt build` on `corvella_dev`; merges to the protected `main` deploy `prod`
 
 Next:
 
-- [ ] Repository, environments (dev and prod) and CI/CD with Asset Bundles ([plan](docs/environments_and_cicd.md))
 - [ ] Source data generation: detailed spec and generator
 - [ ] Schema for each layer and the gold dimensional model
 - [ ] Semantic layer and metric definitions
