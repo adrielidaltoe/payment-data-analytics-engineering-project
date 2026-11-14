@@ -2,7 +2,7 @@
 
 ## Company
 
-Corvella Pay is a fictional US payment facilitator that lets small and mid-sized merchants accept payments online and in person. You are a Senior Analytics Engineer on its Data Platform team. All company names and figures in this section are invented for the project.
+Corvella Pay is a fictional US payment facilitator that lets small and mid-sized merchants accept payments online and in person. All company names and figures in this section are invented for the project.
 
 **What it sells.** Corvella Pay helps businesses (its "merchants") get paid by their customers. A business signs up online in a few minutes. It doesn't need to open a special card-acceptance account at a bank, because Corvella Pay handles that bank relationship for it. Corvella Pay offers three things:
 
@@ -52,7 +52,7 @@ flowchart LR
 | Transactions per year | about 180 million |
 | Main merchant segments | e-commerce, subscriptions/SaaS, restaurants, retail |
 
-**The data platform.** Data lands in a Databricks lakehouse governed by Unity Catalog. Main sources: payment gateway events (authorizations, captures, refunds), daily settlement files from the acquiring bank, dispute notifications from the card networks, the merchant onboarding and KYC system, the internal ledger, and the CRM. The Data Platform team owns the shared models that Finance, Risk, Merchant Success and Product use.
+**The data platform.** Data lands in a Databricks lakehouse governed by Unity Catalog. Main sources: payment gateway events (authorizations, captures, refunds), daily settlement files from the acquiring bank, dispute notifications from the card networks, the Know Your Customer (KYC) system, which onboards and underwrites merchants, the internal ledger, and the CRM. The Data Platform team owns the shared models that Finance, Risk, Merchant Success and Product use.
 
 ## How money moves
 
@@ -109,20 +109,19 @@ That timing gap is why payments data is full of late-arriving events.
 ```mermaid
 ---
 title: The issuer decides, and the answer returns in seconds
+config:
+  themeVariables:
+    edgeLabelBackground: transparent
 ---
-sequenceDiagram
-    participant M as Merchant<br/>(buyer pays)
-    participant G as Corvella Pay<br/>(gateway)
-    participant A as Acquirer<br/>(partner bank)
-    participant N as Card network<br/>(Visa, Mastercard)
-    participant I as Issuer<br/>(buyer's bank)
+block-beta
+    columns 9
+    merchant["<b>Merchant</b><br/>(buyer pays)"] space gateway["<b>Corvella Pay</b><br/>(gateway)"] space acquirer["<b>Acquirer</b><br/>(partner bank)"] space network["<b>Card network</b><br/>(Visa, Mastercard)"] space issuer["<b>Issuer</b><br/>(buyer's bank)"]
+    hold<["If approved, the issuer holds the amount on the buyer's balance#59; no money moves yet"]>(x):9
 
-    M->>G: Request: amount, card, merchant
-    G->>A: request
-    A->>N: request
-    N->>I: request
-    I-->>M: Answer: approve or decline, plus a response code
-    Note over M,I: If approved, the issuer holds the amount on the buyer's balance#59; no money moves yet
+    merchant -- "request:<br/>amount, card,<br/>merchant<br/>#nbsp;<br/>#nbsp;<br/>#nbsp;" --> gateway
+    gateway -- "request<br/>#nbsp;" --> acquirer
+    acquirer -- "request<br/>#nbsp;" --> network
+    network -- "request<br/>#nbsp;" --> issuer
 ```
 
 **2. Capture (seconds to days).** The merchant confirms it wants to collect the authorized amount. Sometimes this happens at the same moment as authorization: a "sale," typical at a store counter. Sometimes it's later: an online shop often captures when the order ships.
@@ -317,7 +316,7 @@ When asked, each team describes the problem from its own point of view:
 
 Behind those explanations, the Data Platform team sees a common set of causes:
 
-1. **Data lives in silos.** Payments come from the gateway, disputes from the card networks, money movements from the ledger and merchant details from the onboarding system. Nothing connects them in one place.
+1. **Data lives in silos.** Payments come from the gateway, disputes from the card networks, money movements from the ledger and merchant details from the Know Your Customer system. Nothing connects them in one place.
 2. **Disputes are hard to link to the original payment.** A dispute arrives weeks or months after the sale, identified by the network's reference number, and matching it to the payment is partly manual.
 3. **History is overwritten.** When a dispute changes status (opened, evidence submitted, won), the old status is replaced, so nobody can measure how long each step took or reconstruct what the queue looked like on a past date.
 4. **Merchant attributes change, and reports use today's values.** A merchant's risk tier or segment changes over time, but reports always show the current one, which distorts past dispute rates by segment.
@@ -535,7 +534,7 @@ The data the solution needs changes in two different ways: **new records arrive*
 | Dispute notifications | Card networks | Several times a day, on business days | Each dispute changes status 3 to 6 times over 30 to 90 days, and a second round can reopen it | About 2,300 new disputes, plus status updates on open ones | Accumulating snapshot of each dispute, plus a status history so no change is lost |
 | Case actions (merchant notified, evidence received, evidence submitted) | Disputes Operations case system | Many times a day | Today the case record is overwritten on each update | Several thousand updates | Capture each action as an event with its timestamp, to measure time per step (M8) |
 | Early alerts | Card networks' alert programs | Continuously | Resolved within 24 to 72 hours | A few hundred | Small event table; short-lived |
-| Merchants | Onboarding and risk systems | About 100 new merchants a day | Risk tier and reserve rate reviewed weekly; segment and category change rarely | About 40,000 merchants, a few hundred changes a day | Slowly changing dimension type 2, so reports can use the values at the time of the sale |
+| Merchants | Know Your Customer system | About 100 new merchants a day | Risk tier and reserve rate reviewed weekly; segment and category change rarely | About 40,000 merchants, a few hundred changes a day | Slowly changing dimension type 2, so reports can use the values at the time of the sale |
 | Reserves, balances and payouts | Internal ledger | Daily, with each payout run | Balances change every day | About 40,000 merchant balances | Daily periodic snapshot of each merchant's balance and reserve |
 | Reference data (reason codes, merchant categories) | Card networks | Rarely | Networks update reason codes a few times a year | Hundreds of rows | Small dimensions, versioned when the networks change them |
 | Policy thresholds (0.75% watch line, $25 auto-accept limit, Visa's lines) | Internal policy and network rules | Rarely | Changed by management or by the networks | A handful of values | Kept with effective dates, so past reports use the threshold that applied at the time |
