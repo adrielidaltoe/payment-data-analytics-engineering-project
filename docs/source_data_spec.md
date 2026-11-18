@@ -284,7 +284,7 @@ These carry the business problems into the data, so the pipeline and the dashboa
 | Behavior | How it appears | Target |
 | --- | --- | --- |
 | Rising dispute rate | The portfolio trend factor in Source 3 | Monitoring dispute rate (M1) about 0.31% through October 2025, rising steadily to about 0.46% by October 2026 |
-| Merchants drifting toward the limits | About 5% of merchants get a dispute factor that grows over 60 to 120 days. Risk reacts late: their tier goes up 30 to 60 days after they cross 0.75%, and a third of them end up suspended and then closed. | At the end of the window, about 10 merchants above 0.75% (M5); 3 merchants crossing 1.5% in the last quarter |
+| Merchants drifting toward the limits | About 5% of merchants get a dispute factor that grows over 60 to 120 days. They are picked among merchants with at least 200 settled sales per 30 days, so they are not labeled low volume (M3) and show up in M5. Risk reacts late: their tier goes up 30 to 60 days after they reach 0.75%, and a third of them end up suspended and then closed. | At the end of the window, about 10 merchants in the M5 watch band (0.75% ≤ M3 < 1.5%); 3 merchants reaching the band above Visa's limit (M3 ≥ 1.5%) in the last quarter |
 | Unrecovered losses | Closed merchants keep receiving disputes on their past sales for up to 120 days, which their reserve doesn't fully cover | Written-off amount of about $19,000 over the last 12 months |
 | Missed deadlines | The case action timing in Source 5 | Expiry rate (M6) about 18% of closed disputes |
 | Late arrivals | Disputes 1 to 120 days after the sale; 0.5% of gateway hourly files arrive 1 to 48 hours late; 2% of settlement files arrive one business day late; 1% of case action files arrive the next morning; 2% of merchant changes are backdated | As listed |
@@ -349,5 +349,5 @@ The generator's tests confirm, on the generated history:
 - Every ID column is unique where the spec says so, and every reference resolves, except the deliberate traps.
 - No full card numbers exist, and every amount has at most two decimals.
 - Every file sits in the folder of its arrival date, and nothing arrives after `end_date`.
-- M1 by month, M6, the number of merchants above 0.75% and the written-off amount fall within ±10% of the targets above.
+- M1 by month, M6, the number of merchants in the M5 watch band and the written-off amount fall within ±10% of the targets above.
 - Running the generator twice with the same parameters produces identical files.
