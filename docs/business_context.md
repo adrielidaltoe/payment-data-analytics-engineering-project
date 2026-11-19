@@ -162,7 +162,7 @@ Cardholders can dispute long after the purchase; for many reason codes, the wind
 
 Two numbers show how hard this is: merchants win about 44.6% of the chargebacks they represent, but net recovery across all chargebacks is just 10.7% ([Chargebacks911 via Redo](https://redo.com/articles/chargebacks/chargeback-statistics)).
 
-Winning a dispute also doesn't make it disappear. Visa watches each merchant's **dispute rate**: the share of its payments that get disputed. Every dispute counts in that rate, even the ones the merchant wins; winning only brings the money back. For example, if 2 out of every 100 payments of a merchant are disputed, its dispute rate is 2%, above Visa's 1.5% limit for merchants with enough volume, even if the merchant wins all of them. Visa also watches the dispute rate of all of Corvella Pay's merchants together. If that combined rate gets too high, the acquirer can penalize Corvella Pay or end the partnership, so Corvella Pay needs to spot merchants with rising dispute rates early.
+Winning a dispute also doesn't make it disappear. Visa watches each merchant's **dispute rate**: the share of its payments that get disputed. Every dispute counts in that rate, even the ones the merchant wins; winning only brings the money back. For example, if 2 out of every 100 payments of a merchant are disputed, its dispute rate is 2%, above Visa's 1.5% limit for merchants with enough volume (Corvella Pay uses at least 200 sales in 30 days, see M3 and M5), even if the merchant wins all of them. Visa also watches the dispute rate of all of Corvella Pay's merchants together. If that combined rate gets too high, the acquirer can penalize Corvella Pay or end the partnership, so Corvella Pay needs to spot merchants with rising dispute rates early.
 
 #### Data produced at each stage
 
@@ -398,7 +398,7 @@ Every dispute ends in one of four ways: **resolved early**, **accepted**, **expi
 
 Separately from handling individual cases, Risk watches dispute rates and acts on merchants before they cause trouble:
 
-- **Per merchant:** Corvella Pay puts a merchant on a watch list when its dispute rate passes 0.75% (half of Visa's 1.5% merchant limit). Actions grow with the risk: warn the merchant and involve Merchant Success, raise its reserve, hold part of its payouts, and as a last resort close its account.
+- **Per merchant:** Corvella Pay puts a merchant on a watch list when its dispute rate reaches 0.75% (half of Visa's 1.5% merchant limit). Actions grow with the risk: warn the merchant and involve Merchant Success, raise its reserve, hold part of its payouts, and as a last resort close its account.
 - **For the whole portfolio:** Risk tracks the combined dispute rate of all merchants against the acquirer's 0.50% line, because crossing it threatens the acquirer relationship.
 
 Today this monitoring runs monthly in a spreadsheet. The goal of the project is to make it daily and reliable.
@@ -425,7 +425,7 @@ These are the questions the solution must answer. They come straight from the sy
 | # | Question | Why it matters |
 |---|---|---|
 | 5 | What is each merchant's dispute rate today, and how has it moved over the last 30 and 90 days? | Replaces the monthly spreadsheet with a daily view of the trend |
-| 6 | Which merchants are above the 0.75% watch line, and which are approaching Visa's 1.5% limit? | Catches risky merchants before they cross the limit, not after |
+| 6 | Which merchants have reached the 0.75% watch line, and which are approaching Visa's 1.5% limit? | Catches risky merchants before they cross the limit, not after |
 | 7 | What is the portfolio's dispute rate against the acquirer's 0.50% line, and which merchants contribute most to it? | Answers the acquirer's warning and focuses action on the merchants that matter |
 | 8 | Is each risky merchant's reserve enough to cover its open disputes? | Prevents losses Corvella Pay would otherwise absorb |
 
@@ -483,16 +483,17 @@ Each metric below has one official definition. That is what ends the "whose numb
 - A **sale** is a settled card payment. Declined or voided payments are not sales.
 - Amounts are in US dollars.
 - **Period:** unless a metric says otherwise, it is reported by calendar month and can also be filtered by day or week. Each record counts on the date of its own event: a sale on its settlement date, a dispute on the date it was received, and a closed dispute on the date it reached its final outcome.
+- **Day:** a day is a calendar day in UTC (00:00 to 23:59:59 UTC). Every record whose event falls in that day counts, whatever the hour. Calendar months and rolling windows are built from UTC days. US Eastern time is used only for display in dashboards, where applicable.
 
 ### Dispute rates
 
 | # | Metric | Definition | Used for |
 |---|---|---|---|
 | M1 | **Dispute rate** (monitoring view) | Disputes received in a calendar month ÷ sales settled in the same month. Calculated per merchant and for the whole portfolio. | D5, D7: compared with the 0.75% watch line, Visa's 1.5% merchant limit and the acquirer's 0.50% line |
-| M2 | **Dispute rate by sale month** (cohort view) | For a sales month M at an age of N days: disputes on sales settled in month M, received up to N days after the last day of M ÷ sales settled in month M. The value is cumulative and only grows with age. It is reported at standard ages of 30, 60, 90 and 120 days after the month ends, and a month is considered mature at 120 days. Months are compared only at the same age. | D8, D11: Finance's view of how risky a month's sales turned out |
-| M3 | **Rolling 30-day dispute rate** | M1 over the last 30 days, recalculated every day, compared with the previous 30 days | D5: spots merchants trending up before they cross a line |
+| M2 | **Dispute rate by sale month** (cohort view) | For a sales month M at an age of N days: disputes on sales settled in month M, received up to N days after the last day of M ÷ sales settled in month M. The value is cumulative and only grows with age. It is reported at standard ages of 30, 60, 90 and 120 days after the month ends, and a month is considered mature at 120 days. Months are compared only at the same age. | D8: Finance's view of how risky a month's sales turned out |
+| M3 | **Rolling 30-day dispute rate** | Disputes received ÷ sales settled, both counted over the same 30 days: the 30 days up to and including yesterday (for example, on November 18, October 19 to November 17). Recalculated every day, per merchant and for the whole portfolio; the trend comes from following its daily value over time. A merchant with fewer than 200 sales settled in the window is labeled **low volume**: its rate is shown but too small to judge, since a single dispute moves it by half a point or more. | D5: spots merchants trending up before they cross a line |
 | M4 | **Disputed amount rate** | Disputed amount ÷ settled sales amount, for the same period as M1 | D7, D8: the money view of M1, since a few large disputes can matter more than many small ones |
-| M5 | **Merchants on the watch list** | Number of merchants with M3 above 0.75%, and number above 1.5% | D5, D7 |
+| M5 | **Merchants on the watch list** | Daily count of merchants in two bands that don't overlap, based on each merchant's M3 that day: **watch** (0.75% ≤ M3 < 1.5%) and **above Visa's limit** (M3 ≥ 1.5%). Low-volume merchants are not counted. | D5, D7 |
 
 ### Case operations
 
@@ -519,7 +520,8 @@ Each metric below has one official definition. That is what ends the "whose numb
 | # | Metric | Definition | Used for |
 |---|---|---|---|
 | M16 | **Early resolution rate** | Alerts resolved with a refund ÷ (alerts resolved + disputes received) | D9, D10: how much prevention is working |
-| M17 | **Dispute mix** | Share of disputes by reason code, merchant segment and merchant category | D9, D11: where prevention efforts should go |
+| M17 | **Dispute mix** | For a period, each group's share of the disputes received, by count and by amount. The count share is disputes in the group ÷ all disputes received. The amount share is disputed amount in the group ÷ total disputed amount. Groups are reason code (rolled up by reason category), merchant segment and merchant category, using the merchant's segment and category at the time of the sale. Within each grouping, the shares add up to 100%. | D9: where most disputes and most disputed money come from |
+| M18 | **Relative dispute rate** | A group's dispute rate (M1) ÷ the dispute rate of the group it is compared with, for the same period. Merchant segment and merchant category (at the time of the sale) are compared with the whole portfolio. A merchant is compared with its own segment. 1.0 means average; above 1.0 means riskier than average. | D9, D11: which merchant types and which merchants are riskier than their peers |
 
 **The two headline metrics** are the portfolio dispute rate (M1), which answers the acquirer's warning, and the expiry rate (M6), which measures the avoidable losses. If the solution works, M1 moves away from the 0.50% line and M6 falls well below today's 18%.
 
@@ -599,7 +601,7 @@ No use needs real-time data. Deadlines are measured in days, so hourly batches a
 | Link to the original payment | At least 99.5% of disputes linked to their payment within 24 hours | Unmatched disputes go to a separate list, visible in the work queue, for manual matching |
 | Uniqueness | One dispute per payment and dispute ID, whatever the number of rounds | Automated uniqueness test |
 | Metric consistency | The same number for the same metric everywhere | Metrics defined once in the semantic layer; dashboards and the AI assistant read from it |
-| Incomplete days | Dispute rates are marked as preliminary when the settlement file for a day is late | Freshness check on the settlement data |
+| Incomplete days | Dispute rates are marked as preliminary when the settlement file for a day is late: sales still count on their settlement date, so every month and every 30-day window that includes that day stays preliminary until the file arrives, and is then corrected. Disputes need no correction, because they count on the day Corvella Pay received them. | Freshness check on the settlement data |
 
 ### Retention: how long data is kept
 
