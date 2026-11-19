@@ -66,18 +66,22 @@ The generator produces one set of files per source system, each with its own for
 
 | # | Source system | Inbox folder | Format and cadence | What it contains | Key columns |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Payment gateway | `gateway_events` | JSON, hourly | One event stream for authorizations, captures, refunds and voids, distinguished by `event_type` | event_id, event_type, event_ts, payment_id, merchant_id, amount, currency, channel, card_brand, card_type, card_bin, card_last4, mcc, status, response_code, risk_score |
-| 2 | Acquirer | `settlement_files` | CSV, once per business day | One line per settled sale, refund or adjustment | file_name, line_number, settlement_date, acquirer_reference, payment_id, transaction_type, gross_amount, interchange_fee, network_fee, acquirer_fee, net_amount |
-| 3 | Card networks | `dispute_notifications` | JSON, several times a day | One event per dispute stage: chargeback opened, second round opened, arbitration, outcome won or lost | notification_id, dispute_id, acquirer_reference, network, notification_type, reason_code, amount, respond_by, received_ts |
-| 4 | Card networks | `early_alerts` | JSON, several times a day | Alerts before a chargeback, and their outcome (refunded or expired) | alert_id, acquirer_reference, network, alert_type, amount, alert_ts |
-| 5 | Case system | `case_actions` | JSON, hourly | One event per action on a case | action_id, dispute_id, action_type (case_opened, merchant_notified, evidence_received, evidence_submitted, merchant_accepted, auto_accepted), action_ts, actor |
-| 6 | Onboarding and risk system | `merchants` | JSON, daily change extract (only merchants created or changed that day) | Merchant attributes | merchant_id, legal_name, mcc, segment, risk_tier, reserve_rate, status, account_manager_id, contact_email, onboarding_date, updated_at |
-| 7 | Internal ledger | `merchant_balances` | CSV, daily | End-of-day balance and reserve per merchant | balance_date, merchant_id, available_balance, reserve_balance |
+| 1 | Payment gateway | `gateway_authorizations` | JSON, hourly | One event per authorization attempt, approved or declined | authorization_id, payment_id, merchant_id, event_ts, amount, currency, channel, card_brand, card_type, card_bin, card_last4, issuer_country, mcc, risk_score, status, response_code, decline_type, auth_code |
+| 2 | Payment gateway | `gateway_captures` | JSON, hourly | One event per capture, full or partial | capture_id, payment_id, authorization_id, event_ts, captured_amount, capture_type, batch_id |
+| 3 | Payment gateway | `gateway_voids` | JSON, hourly | One event per void: a payment cancelled in full before settlement, before or after capture | void_id, payment_id, authorization_id, capture_id, event_ts, void_amount, reason |
+| 4 | Payment gateway | `gateway_refunds` | JSON, hourly | One event per refund of a settled payment, full or partial | refund_id, payment_id, event_ts, refund_amount, reason |
+| 5 | Acquirer | `settlement_files` | CSV, once per business day | One line per settled sale, refund or adjustment | file_name, line_number, settlement_date, acquirer_reference, payment_id, transaction_type, gross_amount, interchange_fee, network_fee, acquirer_fee, net_amount |
+| 6 | Card networks | `dispute_notifications` | JSON, several times a day | One event per dispute stage: chargeback opened, second round opened, arbitration, outcome won or lost | notification_id, dispute_id, acquirer_reference, network, notification_type, reason_code, amount, respond_by, received_ts |
+| 7 | Card networks | `early_alerts` | JSON, several times a day | Alerts before a chargeback, and their outcome (refunded or expired) | alert_id, acquirer_reference, network, alert_type, amount, alert_ts |
+| 8 | Case system | `case_actions` | JSON, hourly | One event per action on a case | action_id, dispute_id, action_type (case_opened, merchant_notified, evidence_received, evidence_submitted, merchant_accepted, auto_accepted), action_ts, actor |
+| 9 | Onboarding and risk system | `merchants` | JSON, daily change extract (only merchants created or changed that day) | Merchant attributes | merchant_id, legal_name, mcc, segment, risk_tier, reserve_rate, status, account_manager_id, contact_email, onboarding_date, updated_at |
+| 10 | Internal ledger | `merchant_balances` | CSV, daily | End-of-day balance and reserve per merchant | balance_date, merchant_id, available_balance, reserve_balance |
 
 **Reference data** (reason codes, merchant categories and policy thresholds) is not generated as source files. It is kept as dbt seeds: CSV files versioned in the Git repository, each row with an effective date, because people maintain this data (Risk sets the thresholds, the networks publish the codes) and its changes should go through code review.
 
 **Design choices:**
 
+- **Each gateway event type has its own file and table.** Authorizations, captures, voids and refunds happen at different moments of the payment lifecycle and carry different columns (see "Data produced at each stage" in the business context), so each lands in its own inbox folder and bronze table. Silver joins them on `payment_id`.
 - **Dispute notifications and resolutions are one event stream.** Networks send a sequence of notices about the same dispute; storing them as events gives the dispute status history directly.
 - **Disputes arrive without Corvella Pay's `payment_id`.** Networks identify the transaction by its `acquirer_reference`, so silver matches each dispute to its payment through the settlement lines. This is the linking problem behind the 99.5% accuracy requirement.
 - **Payouts are not generated.** The disputes solution only needs balances and reserves; payouts can be added if reconciliation becomes a project.
@@ -108,7 +112,10 @@ The inbox volume is organized by source and arrival date:
 
 ```
 /Volumes/<catalog>/landing/inbox/
-    gateway_events/arrival_date=2026-10-14/
+    gateway_authorizations/arrival_date=2026-10-14/
+    gateway_captures/arrival_date=2026-10-15/
+    gateway_voids/arrival_date=2026-10-15/
+    gateway_refunds/arrival_date=2026-10-20/
     settlement_files/arrival_date=2026-10-16/
     dispute_notifications/arrival_date=2026-12-02/
     case_actions/arrival_date=2026-12-02/

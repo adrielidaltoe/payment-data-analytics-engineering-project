@@ -52,15 +52,15 @@ flowchart LR
 | Transactions per year | about 180 million |
 | Main merchant segments | e-commerce, subscriptions/SaaS, restaurants, retail |
 
-**The data platform.** Data lands in a Databricks lakehouse governed by Unity Catalog. Main sources: payment gateway events (authorizations, captures, refunds), daily settlement files from the acquiring bank, dispute notifications from the card networks, the Know Your Customer (KYC) system, which onboards and underwrites merchants, the internal ledger, and the CRM. The Data Platform team owns the shared models that Finance, Risk, Merchant Success and Product use.
+**The data platform.** Data lands in a Databricks lakehouse governed by Unity Catalog. Main sources: payment gateway events (authorizations, captures, voids, refunds), daily settlement files from the acquiring bank, dispute notifications from the card networks, the Know Your Customer (KYC) system, which onboards and underwrites merchants, the internal ledger, and the CRM. The Data Platform team owns the shared models that Finance, Risk, Merchant Success and Product use.
 
 ## How money moves
 
-Every card payment at Corvella Pay follows the same four steps, and three exits (declined, refund, dispute) from that path create most of the operational work.
+Every card payment at Corvella Pay follows the same four steps, and four exits (declined, voided, refunded, dispute) from that path create most of the operational work.
 
 ```mermaid
 ---
-title: A payment can leave the happy path at three points
+title: A payment can leave the happy path at four points
 ---
 flowchart LR
     authorize["<b>Authorize</b><br/>Issuer approves or<br/>declines the card"]
@@ -68,18 +68,21 @@ flowchart LR
     settle["<b>Clear and settle</b><br/>Acquirer sends daily<br/>settlement file"]
     payout["<b>Pay out</b><br/>Funds, minus fees,<br/>reach the merchant"]
     declined["<b>Declined</b><br/>Payment ends;<br/>may be retried"]
+    voided["<b>Voided</b><br/>Merchant cancels<br/>before settlement"]
     refunded["<b>Refunded</b><br/>Merchant returns<br/>money to buyer"]
     dispute["<b>Dispute opened</b><br/>Cardholder disputes<br/>via the issuer"]
     resolved["<b>Resolved</b><br/>Merchant wins, or<br/>amount is debited"]
 
     authorize --> capture --> settle --> payout
     authorize -- declined --> declined
+    authorize -- void --> voided
+    capture -- void --> voided
     settle -- refund --> refunded
     payout -- dispute --> dispute
     dispute -- evidence review --> resolved
 ```
 
-Declines happen at authorization, refunds can follow any captured sale, and disputes can arrive weeks or months after the merchant was paid, which makes them late-arriving events in the data.
+Declines happen at authorization, voids cancel a payment before it settles, refunds can follow any settled sale, and disputes can arrive weeks or months after the merchant was paid, which makes them late-arriving events in the data.
 
 ### The payment lifecycle in depth
 
@@ -141,7 +144,7 @@ The acquirer then sends a **daily settlement file** listing each transaction wit
 
 A **reserve** is a portion of the money Corvella Pay holds back from risky merchants, to cover future refunds or chargebacks it might otherwise have to absorb.
 
-#### The three exits
+#### The four exits
 
 **Declined (at authorization).** Declines come in two kinds:
 
@@ -150,9 +153,14 @@ A **reserve** is a portion of the money Corvella Pay holds back from risky merch
 
 Declines can also come from Corvella Pay's own risk engine, which can block a payment before it reaches the issuer.
 
-**Refunded (after capture).** The merchant gives money back voluntarily: full or partial, always referencing the original transaction. The refund travels through clearing as a credit to the cardholder, and Corvella Pay deducts it from the merchant's next payout.
+**Voided (after authorization, before settlement).** The merchant cancels the payment before it settles, so no money ever moves. A void can happen at two moments:
 
-One distinction matters for modeling: before settlement, a merchant can usually **void** the transaction, which simply cancels it. After settlement, it must be a **refund**, which is a new money movement in the opposite direction.
+- **Before capture:** the merchant cancels an authorization it will never collect, for example an order that can't be fulfilled. The issuer releases the hold on the cardholder's balance. The networks call this an **authorization reversal**; at Corvella Pay it is recorded as a void.
+- **After capture, before the batch is sent:** captures wait in the end-of-day batch, and until that batch is submitted for clearing the merchant can still cancel the payment, for example a cashier correcting a wrong amount. Once the batch is sent, a void is no longer possible.
+
+A void always cancels the full amount; giving back part of a payment is a refund. A voided payment never reaches the settlement file, is not a sale, pays no fees, and cannot be disputed, because no money moved.
+
+**Refunded (after settlement).** The merchant gives money back voluntarily: full or partial, always referencing the original transaction. Unlike a void, a refund is a new money movement in the opposite direction. It travels through clearing as a credit to the cardholder, and Corvella Pay deducts it from the merchant's next payout. The fees on the original sale are not returned.
 
 **Dispute opened (after settlement, sometimes much later).** The cardholder contacts their bank, not the merchant, to contest the charge, for example claiming fraud, an item not received, or a cancelled subscription. The issuer files a chargeback through the network with a **reason code**. The money is immediately pulled back from the acquirer, then from Corvella Pay, which debits the merchant, usually with a fee. On a single order, the merchant has the order value at risk plus a dispute fee, commonly $15 to $25, plus 20 to 45 minutes of evidence work ([Redo](https://redo.com/articles/chargebacks/chargeback-statistics)).
 
@@ -203,7 +211,21 @@ Each stage of the money path produces its own records, from its own source syste
 | capture_type | STRING | full | full or partial |
 | batch_id | STRING | bat_20261015_01 | End-of-day batch sent for clearing |
 
-**3. Settlement file line** (acquirer, one row per transaction, 1–2 business days later)
+**3. Void event** (gateway, after authorization or capture, before the batch is sent)
+
+The example payment is not voided, so this table follows a different one (`pay_2H7R5N`, an order cancelled after capture because the item was out of stock).
+
+| Column | Type | Example | Meaning |
+|---|---|---|---|
+| void_id | STRING | void_5C1W8P | Unique ID of the void |
+| payment_id | STRING | pay_2H7R5N | Payment being cancelled |
+| authorization_id | STRING | auth_4V9K3T | The authorization it cancels |
+| capture_id | STRING | cap_6N2F7Y | The capture it cancels; null if voided before capture |
+| event_ts | TIMESTAMP | 2026-10-15 18:22:31 | When the merchant voided it |
+| void_amount | DECIMAL(18,2) | 65.00 | Always the full amount (captured amount, or authorized amount if not captured) |
+| reason | STRING | out_of_stock | Merchant's stated reason |
+
+**4. Settlement file line** (acquirer, one row per transaction, 1–2 business days later)
 
 | Column | Type | Example | Meaning |
 |---|---|---|---|
@@ -211,7 +233,7 @@ Each stage of the money path produces its own records, from its own source syste
 | file_name | STRING | acq_settlement_20261016.csv | Daily file it came from |
 | acquirer_reference | STRING | 24692166289000012345678 | Reference number the networks use for this transaction |
 | payment_id | STRING | pay_8F3K2Q | Corvella Pay's reference, used to match the line |
-| transaction_type | STRING | sale | sale or refund |
+| transaction_type | STRING | sale | sale or refund; voided payments never appear |
 | gross_amount | DECIMAL(18,2) | 100.00 | Transaction amount |
 | interchange_fee | DECIMAL(18,2) | 2.10 | Paid to the buyer's bank |
 | network_fee | DECIMAL(18,2) | 0.14 | Paid to Visa or Mastercard |
@@ -219,7 +241,7 @@ Each stage of the money path produces its own records, from its own source syste
 | net_amount | DECIMAL(18,2) | 97.56 | What Corvella Pay receives for this line |
 | currency | STRING | USD | Currency |
 
-**4. Merchant payout** (internal ledger, on the payout schedule)
+**5. Merchant payout** (internal ledger, on the payout schedule)
 
 | Column | Type | Example | Meaning |
 |---|---|---|---|
@@ -237,18 +259,17 @@ Each stage of the money path produces its own records, from its own source syste
 
 Each payout also has one line per included transaction or adjustment, so a payment can be traced to the payout that paid it.
 
-**5. Refund or void event** (gateway, after capture)
+**6. Refund event** (gateway, after settlement)
 
 | Column | Type | Example | Meaning |
 |---|---|---|---|
 | refund_id | STRING | ref_9M4T6B | Unique ID of the refund |
 | payment_id | STRING | pay_8F3K2Q | Original payment |
 | event_ts | TIMESTAMP | 2026-10-20 13:45:12 | When the merchant issued it |
-| refund_type | STRING | refund | void (before settlement) or refund (after) |
-| refund_amount | DECIMAL(18,2) | 40.00 | Can be partial |
+| refund_amount | DECIMAL(18,2) | 40.00 | Full or partial; a payment can have several refunds, together at most the settled amount |
 | reason | STRING | customer_return | Merchant's stated reason |
 
-**6. Dispute notification** (card network, weeks to months later)
+**7. Dispute notification** (card network, weeks to months later)
 
 | Column | Type | Example | Meaning |
 |---|---|---|---|
@@ -264,7 +285,7 @@ Each payout also has one line per included transaction or adjustment, so a payme
 | respond_by | DATE | 2026-12-22 | Deadline to submit evidence |
 | dispute_fee | DECIMAL(18,2) | 15.00 | Fee charged to the merchant |
 
-**7. Dispute resolution** (card network, weeks later)
+**8. Dispute resolution** (card network, weeks later)
 
 | Column | Type | Example | Meaning |
 |---|---|---|---|
@@ -686,4 +707,9 @@ Settlement reconciliation, the merchant-facing dashboard, a model that predicts 
 - [Avoiding false declines](https://www.clear.sale/blog/avoiding-false-declines) — ClearSale
 - [86% of payment firms say their data lacks transparency and standardization](https://financialit.net/news/payments/86-payment-firms-say-their-data-lacks-transparency-and-standardization-needed) — FinancialIT, on the AutoRek payments survey
 - [Health and fitness companies lose 11% of revenues from failed payments](https://www.pymnts.com/subscriptions/2023/health-fitness-companies-lose-11-percent-revenues-failed-payments/) — PYMNTS and FlexPay, 2023
+- [Refund and cancel payments](https://docs.stripe.com/refunds) — Stripe docs (cancel before capture, refund after)
+- [Cancel](https://docs.adyen.com/online-payments/classic-integrations/modify-payments/cancel) and [Cancel or refund](https://docs.adyen.com/online-payments/classic-integrations/modify-payments/cancel-or-refund) — Adyen docs
+- [Credit card lifecycle](https://support.forte.net/support/solutions/articles/11000050932-credit-card-lifecycle) — Forte (void until the batch settles)
+- [Difference between a void and a refund](https://shift4.zendesk.com/hc/en-us/articles/4404147472147-Difference-Between-a-Void-and-a-Refund) — Shift4
+- [Voids, refunds and reversals](https://www.chargebackstop.com/blog/voids-refunds-and-reversals-the-differences-that-shape-chargeback-outcomes) — ChargebackStop
 - [Buy a payment processing business in 2026](https://ctacquisitions.com/?p=43343) — CT Acquisitions, June 2026
