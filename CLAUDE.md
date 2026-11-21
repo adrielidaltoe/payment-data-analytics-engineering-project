@@ -19,9 +19,11 @@ before designing models or metrics.
 - Money: DECIMAL(18,2). Never FLOAT/DOUBLE.
 - Timestamps stored in UTC; convert to US Eastern only for display.
 - Never store full card numbers — only card_bin and card_last4.
-- Source column names follow the "Data produced at each stage" tables in docs/business_context.md.
+- Do not guess source table schemas: always look them up in docs/source_data_spec.md, the single reference for source files, columns and types.
 - Keep history (SCD2 / event tables); never overwrite status or merchant attributes.
 - Use the metric definitions in docs/business_context.md; don't invent alternatives.
+- The window to open a dispute is up to 120 days after the sale.
+- Corvella automatically accepts disputes under $25.
 
 ## Code style
 
