@@ -49,13 +49,15 @@ flowchart LR
     cases["<b>Case actions</b><br/>dispute_id"]
     balances["<b>Merchant balances</b><br/>merchant_id"]
 
-    gateway -- merchant_id --> merchants
-    settlement -- payment_id --> gateway
-    disputes -- acquirer_reference --> settlement
-    alerts -- acquirer_reference --> settlement
-    cases -- dispute_id --> disputes
-    balances -- merchant_id --> merchants
+    merchants -- merchant_id --> gateway
+    gateway -- payment_id --> settlement
+    settlement -- acquirer_reference --> disputes
+    settlement -- acquirer_reference --> alerts
+    disputes -- dispute_id --> cases
+    merchants -- merchant_id --> balances
 ```
+
+Arrows follow the order of events; labels are the join keys.
 
 Disputes and alerts come from the network side, which knows only the `acquirer_reference`; the gateway never sees it and the networks never see the `payment_id`. That's why disputes and alerts can only be linked to a payment through the settlement lines.
 
@@ -293,7 +295,9 @@ Alerts the networks send before a chargeback, giving the merchant a chance to re
 
 ## Source 8: Case actions
 
-The event export from the Disputes Operations case system: one row per action on a case. One case per dispute; the actions of every round belong to the same case.
+Corvella Pay's own record of how each dispute was handled. When a chargeback notice arrives, the Disputes Operations case system opens a case. From then on it logs every step taken on the case: notifying the merchant, receiving their evidence, submitting it to the network, or accepting the dispute. The network only reports when a dispute opens and whether it was won or lost. These actions fill in what happened in between, and they are the only source for disputes that were accepted or that expired.
+
+The export has one row per action. Each dispute has one case, and the actions of every round belong to that case.
 
 | Column | Type | Null | Example | Meaning |
 | --- | --- | --- | --- | --- |
