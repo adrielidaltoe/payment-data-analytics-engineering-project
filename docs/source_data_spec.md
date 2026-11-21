@@ -271,7 +271,8 @@ The network sends no notice when a dispute is accepted or expires. Those outcome
   | Fought | about 57% | `dispute_won` or `dispute_lost` arrives 20 to 45 days after the evidence is submitted |
 
 - **Win rate of fought disputes:** about 45% overall, varying by reason category: `processing_error` 60%, `merchandise_not_received` 55%, `not_as_described` 40%, `subscription_cancelled` 35%, `fraud` 30%.
-- **Second round:** 15% of won disputes get a `pre_arbitration_opened` 10 to 30 days after the win, with a new `respond_by`. The merchant accepts 40% of them and fights the rest, winning half. 3% of lost pre-arbitrations go to `arbitration_opened`, decided 30 to 60 days later.
+- **Second round (pre-arbitration):** 15% of won disputes get a `pre_arbitration_opened` 10 to 30 days after the win, with a new `respond_by`. The merchant accepts 40% of them and fights the rest, winning half. The [steps of a dispute](business_context.md#steps-of-a-dispute) explain pre-arbitration and arbitration.
+- **Third round (arbitration):** the merchant escalates 3% of lost pre-arbitrations to the network, mostly the largest amounts, because the loser pays a high fee. `arbitration_opened` arrives 5 to 15 days after the `dispute_lost`, with a new `respond_by`. The merchant has already chosen to fight, so this round is never accepted and never expires. The network's ruling, `dispute_won` or `dispute_lost`, arrives 30 to 60 days after the evidence is submitted, and the merchant wins half. The arbitration fee is not in the data.
 
 ## Source 7: Early alerts
 
@@ -315,6 +316,7 @@ The export has one row per action. Each dispute has one case, and the actions of
 - **Evidence received:** from the merchant, for disputes the merchant fights: 3 to 25 days after notification, 20% of them after the internal 20-day limit.
 - **Evidence submitted:** by an analyst, 1 to 5 business days after the evidence arrives, and only if that is on or before `respond_by`.
 - **Accepted:** `merchant_accepted` by `merchant`, 2 to 15 days after notification.
+- **Arbitration:** the merchant asked for it, so the case gets a single `evidence_submitted` with `stage = arbitration`. The analyst submits it 1 to 5 business days after `arbitration_opened`, always on or before `respond_by`, reusing the evidence from the earlier rounds.
 - **Where expired disputes stall:** 55% were notified but no evidence ever arrived, 30% had evidence arrive too late to submit, and 15% were never notified at all. That's what question 3 measures.
 - **Working hours:** analyst and merchant actions happen between 8:00 and 20:00 US Eastern on business days; `system` actions happen at any time.
 
