@@ -126,7 +126,7 @@ One event per authorization attempt, approved or declined. The payment's attribu
 | card_bin | STRING | no | 411111 | First six digits of the card; identify the issuer |
 | card_last4 | STRING | no | 4242 | Last four digits |
 | issuer_country | STRING | no | US | Country of the buyer's bank |
-| mcc | STRING | no | 5651 | Merchant category code at the time of the payment |
+| mcc | STRING | no | 5651 | Merchant category code at the time of the payment (see the merchant categories seed) |
 | risk_score | DECIMAL(5,4) | no | 0.1200 | Corvella Pay's fraud score, 0 to 1 |
 | status | STRING | no | approved | `approved` or `declined` |
 | response_code | STRING | yes | 00 | Issuer's answer (see generation rules); null when the risk engine blocked the attempt, because it never reached the issuer |
@@ -328,7 +328,7 @@ A daily change extract: one row for each merchant created or changed that day, w
 | --- | --- | --- | --- | --- |
 | merchant_id | STRING | no | mer_00412 | Unique ID of the merchant |
 | legal_name | STRING | no | Northwind Apparel LLC | Registered business name |
-| mcc | STRING | no | 5651 | Merchant category code |
+| mcc | STRING | no | 5651 | Merchant category code (see the merchant categories seed) |
 | segment | STRING | no | ecommerce | `ecommerce`, `subscriptions`, `restaurants` or `retail` |
 | risk_tier | STRING | no | medium | `low`, `medium` or `high` |
 | reserve_rate | DECIMAL(5,4) | no | 0.0500 | Share of sales held in reserve |
