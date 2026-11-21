@@ -31,6 +31,11 @@ These apply to every source unless its section says otherwise.
 
 ## How the sources connect
 
+Two terms from the acquirer's side explain how the sources link:
+
+- **Settlement line:** one row of the acquirer's daily settlement file (Source 5). Every business day, the acquirer lists each transaction whose money moved that day (a sale, a refund or an adjustment) with its gross amount, the fees taken and the net amount. It is the only record that carries both Corvella Pay's `payment_id`, which the gateway sends with the transaction, and the network's `acquirer_reference`.
+- **Acquirer reference (`acquirer_reference`):** the 23-digit Acquirer Reference Number (ARN) the acquirer assigns to a transaction when it submits it to Visa or Mastercard for clearing. From then on, the network, the issuer and the cardholder's bank identify the transaction by this number. The example `24692166229000012345678` is a format code (`2`), the acquirer's BIN (`469216`), the clearing date as the last digit of the year and the day of the year (`6229`, Aug 17, 2026), a sequence number and a check digit.
+
 ```mermaid
 ---
 title: Disputes reach the payment only through the settlement line
@@ -52,7 +57,7 @@ flowchart LR
     balances -- merchant_id --> merchants
 ```
 
-The networks identify a transaction by its `acquirer_reference`, which the acquirer assigns at settlement. The gateway never sees it. That's why disputes and alerts can only be linked to a payment through the settlement lines.
+Disputes and alerts come from the network side, which knows only the `acquirer_reference`; the gateway never sees it and the networks never see the `payment_id`. That's why disputes and alerts can only be linked to a payment through the settlement lines.
 
 ## Files and delivery
 
@@ -244,6 +249,8 @@ One event per notice a network sends about a dispute. The notices of one dispute
 | cardholder_email | STRING | yes | cardholder_004812@example.com | Only on `chargeback_opened`; personal data |
 
 The network sends no notice when a dispute is accepted or expires. Those outcomes come from the case actions and the deadline: a dispute is **accepted** when a `merchant_accepted` or `auto_accepted` action exists, and **expired** when `respond_by` passes without an `evidence_submitted` action for that round.
+
+**Linking a dispute to its payment.** Match the dispute's `acquirer_reference` against settlement lines with `transaction_type = sale` only. Refund and adjustment lines carry the same `acquirer_reference` as the sale they belong to, so matching against every line would return several rows for a refunded or adjusted payment and duplicate the dispute. Among sale lines, the `acquirer_reference` is unique, so each dispute matches at most one sale; that sale's `payment_id` leads to the payment and its merchant. Early alerts link the same way.
 
 **Generation rules**
 
