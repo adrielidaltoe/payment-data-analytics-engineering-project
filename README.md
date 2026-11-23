@@ -153,5 +153,6 @@ Next:
 
 - [Business context](docs/business_context.md) — company, payment lifecycle, dispute process, business questions, metrics, requirements and constraints.
 - [Solution design](docs/solution_design.md) — architecture, layers, source data, Unity Catalog layout, processing and orchestration.
+- [Source data specification](docs/source_data_spec.md) — the files, columns, arrival times and generation rules of each synthetic source.
 - [Environments and CI/CD](docs/environments_and_cicd.md) — dev and prod targets, identities and secrets, CI and CD workflows, repository rules and implementation steps.
 - [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-011).
