@@ -20,3 +20,9 @@ models:
   corvella:
     smoke_test:
       +materialized: table
+
+# Reference data lands in silver: it is already clean and typed, and the gold
+# dimensions are built from it (see macros/generate_schema_name.sql).
+seeds:
+  corvella:
+    +schema: silver

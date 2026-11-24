@@ -1,0 +1,128 @@
+version: 2
+
+# Reference data maintained by people, versioned in Git (see the solution
+# design, "Source data"). The source data generator reads the same files.
+# Dates are effective dates: a row applies from valid_from up to, but not
+# including, valid_to; an empty valid_to means it still applies.
+
+seeds:
+  - name: reason_codes
+    description: >
+      Card network reason codes for disputes, each mapped to one of the five
+      reason categories used in reporting.
+    config:
+      column_types:
+        network: string
+        reason_code: string
+        reason_category: string
+        description: string
+        valid_from: date
+        valid_to: date
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [network, reason_code, valid_from]
+    columns:
+      - name: network
+        description: Card network that defines the code.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [visa, mastercard]
+      - name: reason_code
+        description: The network's code, as it appears in dispute notifications (for example 13.1 or 4837).
+        data_tests:
+          - not_null
+      - name: reason_category
+        description: Category used to group codes across networks.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - fraud
+                  - merchandise_not_received
+                  - not_as_described
+                  - subscription_cancelled
+                  - processing_error
+      - name: description
+        description: The network's name for the code.
+        data_tests:
+          - not_null
+      - name: valid_from
+        description: First date the code applies.
+        data_tests:
+          - not_null
+      - name: valid_to
+        description: Date the code stopped applying; empty while it still applies.
+
+  - name: merchant_categories
+    description: >
+      Merchant category codes (MCC) used by Corvella Pay's merchants, with
+      their description and the merchant segment they belong to.
+    config:
+      column_types:
+        mcc: string
+        description: string
+        segment: string
+    columns:
+      - name: mcc
+        description: Four-digit merchant category code, kept as text.
+        data_tests:
+          - not_null
+          - unique
+      - name: description
+        description: Standard name of the category.
+        data_tests:
+          - not_null
+      - name: segment
+        description: Merchant segment the category belongs to.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [ecommerce, subscriptions, restaurants, retail]
+
+  - name: policy_thresholds
+    description: >
+      Limits from Corvella Pay's policy and the card networks' rules, with
+      effective dates so past reports use the value that applied at the time.
+    config:
+      column_types:
+        threshold_name: string
+        value: decimal(18,4)
+        valid_from: date
+        valid_to: date
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [threshold_name, valid_from]
+    columns:
+      - name: threshold_name
+        description: >
+          watch_line, network_merchant_limit and acquirer_portfolio_line are
+          dispute rates (0.0075 is 0.75%); auto_accept_limit and dispute_fee
+          are US dollar amounts.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - watch_line
+                  - network_merchant_limit
+                  - acquirer_portfolio_line
+                  - auto_accept_limit
+                  - dispute_fee
+      - name: value
+        description: >
+          The threshold value. Four decimal places, because the same column
+          holds rates; dollar amounts use only two.
+        data_tests:
+          - not_null
+      - name: valid_from
+        description: First date the value applies.
+        data_tests:
+          - not_null
+      - name: valid_to
+        description: Date the value stopped applying; empty while it still applies.

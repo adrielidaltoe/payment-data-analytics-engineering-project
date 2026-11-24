@@ -512,7 +512,7 @@ Inside the business rules, each generation rule is a `DataFrame -> DataFrame` fu
 
 **Phase A: foundations**
 
-- [ ] **1. Seeds.** `reason_codes`, `merchant_categories` and `policy_thresholds` in `dbt/seeds/`, with a properties file giving the column types and tests. Done when `dbt seed` loads them in dev.
+- [x] **1. Seeds.** `reason_codes`, `merchant_categories` and `policy_thresholds` in `dbt/seeds/`, with a properties file giving the column types and tests. Done when `dbt seed` loads them in dev.
 - [ ] **2. Spark test setup.** PySpark as a dev dependency, Java in CI, and `tests/generator/conftest.py` with a local SparkSession. Done when a trivial Spark test passes locally and in CI.
 - [ ] **3. Scenario.** `scenario.py`: the frozen scenario, the builder with its cross-field checks, and the two presets. Done when tests cover every check in `build()`.
 - [ ] **4. Keyed random values.** `core/keyed_random.py`: uniform numbers, integers in a range and weighted choices, all derived from a hash of the record's key, the seed and a salt. Done when tests show the same inputs give the same values whatever the partitioning, and the shares are close to the weights.
