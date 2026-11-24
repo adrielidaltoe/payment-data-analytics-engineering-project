@@ -5,12 +5,15 @@ description = "Corvella Pay disputes and chargebacks analytics on Databricks and
 readme = "README.md"
 # Same Python as Databricks serverless jobs (see .python-version).
 requires-python = ">=3.12,<3.13"
-# Runtime dependencies of src/corvella. PySpark is provided by Databricks and
-# will be added as a dev dependency when the generator gets unit tests.
+# Runtime dependencies of src/corvella. PySpark is provided by Databricks, so
+# it is only a dev dependency, for the generator's unit tests.
 dependencies = []
 
 [dependency-groups]
 dev = [
+    # Same Spark as serverless environment version 6 (Databricks Connect 19).
+    # Running it locally needs Java 17 (see README).
+    "pyspark==4.3.0",
     "pytest==9.2.0",
     "ruff==0.17.3",
     "sqlfluff==4.4.0",

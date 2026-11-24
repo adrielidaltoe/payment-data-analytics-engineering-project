@@ -75,6 +75,8 @@ Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboar
 | dbt-databricks | 1.13.0 | `pyproject.toml` (`dbt` group) |
 | ruff | 0.17.3 | `pyproject.toml` (`dev` group) |
 | pytest | 9.2.0 | `pyproject.toml` (`dev` group) |
+| PySpark | 4.3.0 (same Spark as serverless environment version 6), for the generator's unit tests | `pyproject.toml` (`dev` group) |
+| Java | 17 (same JDK as serverless environment version 6), needed by local PySpark | Installed separately (see How to run) |
 | sqlfluff | 4.4.0 | `pyproject.toml` (`dev` group); rules in `dbt/.sqlfluff` |
 | Databricks CLI | 1.22.1 | Installed separately (see How to run) |
 
@@ -83,6 +85,7 @@ Databricks Free Edition (serverless compute, Unity Catalog, Jobs, AI/BI dashboar
 Prerequisites:
 
 - [uv](https://docs.astral.sh/uv/), used to create the Python environment. The project uses Python 3.12, the version Databricks serverless jobs run; uv downloads it if it is missing, without changing the system Python.
+- Java 17, used by PySpark to run the generator's unit tests locally. On Ubuntu: `sudo apt install openjdk-17-jre-headless`. If another Java version is the default, set `JAVA_HOME` to the Java 17 folder (for example `/usr/lib/jvm/java-17-openjdk-amd64`) before running pytest.
 - [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install), used to deploy the jobs defined in `databricks.yml` and `resources/` (Databricks Asset Bundles).
 
 1. Create the virtual environment and install the project with its tools (dbt, ruff, pytest); versions are pinned in `pyproject.toml` and locked in `uv.lock`:
