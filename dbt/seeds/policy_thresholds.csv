@@ -1,0 +1,6 @@
+threshold_name,value,valid_from,valid_to
+watch_line,0.0075,2020-01-01,
+network_merchant_limit,0.0150,2020-01-01,
+acquirer_portfolio_line,0.0050,2020-01-01,
+auto_accept_limit,25.00,2020-01-01,
+dispute_fee,15.00,2020-01-01,

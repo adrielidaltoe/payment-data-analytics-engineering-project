@@ -1,0 +1,21 @@
+mcc,description,segment
+5651,Family Clothing Stores,ecommerce
+5732,Electronics Stores,ecommerce
+5945,"Hobby, Toy and Game Shops",ecommerce
+5964,Direct Marketing - Catalog Merchants,ecommerce
+5977,Cosmetic Stores,ecommerce
+4899,"Cable, Satellite and Other Pay Television and Radio Services",subscriptions
+5734,Computer Software Stores,subscriptions
+5815,"Digital Goods - Books, Movies, Music",subscriptions
+5968,Direct Marketing - Continuity/Subscription Merchants,subscriptions
+7997,"Membership Clubs (Sports, Recreation, Athletic)",subscriptions
+5462,Bakeries,restaurants
+5811,Caterers,restaurants
+5812,Eating Places and Restaurants,restaurants
+5813,Drinking Places (Alcoholic Beverages),restaurants
+5814,Fast Food Restaurants,restaurants
+5331,Variety Stores,retail
+5411,Grocery Stores and Supermarkets,retail
+5912,Drug Stores and Pharmacies,retail
+5941,Sporting Goods Stores,retail
+5995,"Pet Shops, Pet Food and Supplies",retail

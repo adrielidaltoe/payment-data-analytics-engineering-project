@@ -6,5 +6,6 @@ macro's output. Add a function here when a model starts using a new macro.
 """
 
 
-def generate_surrogate_key(field_list):
+def generate_surrogate_key(field_list: list[str]) -> str:
+    """Return placeholder SQL in place of a surrogate key built from `field_list`."""
     return "md5('sqlfluff_stub')"

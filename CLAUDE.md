@@ -29,6 +29,11 @@ before designing models or metrics.
 
 - Python: ruff (settings in `pyproject.toml`). SQL in dbt models: sqlfluff (settings in `dbt/.sqlfluff`): lowercase, explicit `as` aliases, trailing commas.
 - Run `uv run sqlfluff fix dbt` before committing SQL. When a model uses a new package macro, add a stand-in to `dbt/sqlfluff_libs/`.
+- Python design: object-oriented, following the SOLID principles.
+- Use factory, builder, strategy and template method where they fit; don't add a pattern for a single variation.
+- Give variables meaningful names, never single letters. The one exception is the alias `F` in `import pyspark.sql.functions as F`.
+- Add type annotations to all function and method parameters and return values.
+- Write a docstring for every module, class, method and function, saying what it does and, where useful, its arguments, return value and errors raised.
 
 ## Secrets and connections
 
