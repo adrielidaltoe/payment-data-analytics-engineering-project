@@ -15,6 +15,7 @@ dev = [
     # Running it locally needs Java 17 (see README).
     "pyspark==4.3.0",
     "pytest==9.2.0",
+    "pytest-cov==7.1.0",
     "ruff==0.17.3",
     "sqlfluff==4.4.0",
 ]
@@ -51,4 +52,7 @@ convention = "google"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+# Every run prints line coverage of src/corvella, with the lines no test ran.
+# There is no minimum: for PySpark code, a line that ran isn't a rule that was
+# tested (see README, Checks).
+addopts = "-ra --cov=corvella --cov-report=term-missing"
