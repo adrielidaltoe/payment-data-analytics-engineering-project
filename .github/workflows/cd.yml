@@ -1,5 +1,5 @@
 # CD: deploys the prod bundle target on every push to main (see
-# docs/environments_and_cicd.md). Pull requests are checked by CI first.
+# docs/architecture/environments_and_cicd.md). Pull requests are checked by CI first.
 name: CD
 
 on:

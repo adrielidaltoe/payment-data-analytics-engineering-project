@@ -4,7 +4,7 @@ Nov 4, 2026 · Adrieli Dal'Toé
 
 ## Purpose and scope
 
-This document describes how the disputes solution for Corvella Pay is built: the data architecture, where each layer lives, which tool processes it, and why each main decision was made. The architecture design was based on the business context and requirements presented in the [business context document](business_context.md).
+This document describes how the disputes solution for Corvella Pay is built: the data architecture, where each layer lives, which tool processes it, and why each main decision was made. The architecture design was based on the business context and requirements presented in the [business context document](../business_context.md).
 
 The decisions are recorded as architecture decision records (ADRs): short entries with the decision, its context, the alternatives considered and the consequences. When a decision changes, a new record replaces the old one instead of rewriting history.
 
@@ -55,14 +55,14 @@ With the volumes from the business context:
 | Dispute status history and case actions | Several times the number of disputes | Incremental, append | `INSERT INTO` with only the new events, deduplicated on the event ID (dbt incremental, `append`) | Each status change or action is a new row that is never updated |
 | Daily snapshots (open queue, balances) | One set of rows per day | Incremental, replace one day per run | `INSERT INTO … REPLACE WHERE snapshot_date = <run date>` (dbt incremental, `replace_where`) | Rerunning a day replaces that day instead of duplicating it, so reruns are safe (idempotent) and the day matches the source exactly |
 | Merchant versions (silver, `stg_merchants__versions`) | About 0.8 million (40,000 merchants plus their changes) | Full rebuild from the merchant extracts in bronze | `CREATE OR REPLACE TABLE … AS SELECT` that keeps a row only when a tracked attribute (risk tier, segment, category, reserve rate, status) differs from the merchant's previous version, using `LAG()` (dbt `table`) | Bronze keeps every extract it receives, so the versions can be recalculated exactly at any time; repeated rows for unchanged merchants are collapsed into real changes. Assumption about the source: the onboarding system sends a change extract each day (only merchants created or changed that day), which keeps bronze near 0.8 million rows. If it sent a full extract of all merchants every day instead, bronze would hold about 100 million merchant rows over 7 years, and this model would have to become incremental, processing only the newest extract. |
-| Merchant dimension (gold, `dim_merchant`, type 2) | About 0.8 million | Full rebuild from the silver versions | `CREATE OR REPLACE TABLE … AS SELECT` with `LEAD()` over each merchant's versions to set `valid_from`, `valid_to` and `is_current`, plus a surrogate key and an unknown-merchant row (dbt `table`) | The full history can be rebuilt from scratch at any time, which dbt snapshots can't do; `valid_from` is the business change time, not the run time (see [ADR-007](architecture_decision_records/adr-007-merchant-scd2-from-versions.md)) |
+| Merchant dimension (gold, `dim_merchant`, type 2) | About 0.8 million | Full rebuild from the silver versions | `CREATE OR REPLACE TABLE … AS SELECT` with `LEAD()` over each merchant's versions to set `valid_from`, `valid_to` and `is_current`, plus a surrogate key and an unknown-merchant row (dbt `table`) | The full history can be rebuilt from scratch at any time, which dbt snapshots can't do; `valid_from` is the business change time, not the run time (see [ADR-007](decisions/adr-007-merchant-scd2-from-versions.md)) |
 | Reference data (reason codes, categories, thresholds) | Hundreds | Full rebuild | `CREATE OR REPLACE TABLE … AS SELECT` (dbt `table`) | A few hundred rows: rebuilding costs almost nothing and needs no incremental logic |
 
 Incremental models keep a full-refresh option (`dbt run --full-refresh`) for when a business rule changes and history must be recalculated from bronze.
 
 ## Source data
 
-The generator produces one set of files per source system, each with its own format and delivery schedule. The replay job releases them into the inbox exactly as those systems would send them. The columns, file names, arrival times and generation rules of each source are defined in the [source data specification](source_data_spec.md).
+The generator produces one set of files per source system, each with its own format and delivery schedule. The replay job releases them into the inbox exactly as those systems would send them. The columns, file names, arrival times and generation rules of each source are defined in the [source data specification](../components/source_data/spec.md).
 
 | # | Source system | Inbox folder | Format and cadence | What it contains |
 | --- | --- | --- | --- | --- |
@@ -81,7 +81,7 @@ The generator produces one set of files per source system, each with its own for
 
 **Design choices:**
 
-- **Each gateway event type has its own file and table.** Authorizations, captures, voids and refunds happen at different moments of the payment lifecycle and carry different columns (see the [source data specification](source_data_spec.md)), so each lands in its own inbox folder and bronze table, with one staging model each. In silver, an intermediate model stacks them (a union, not a join) into one payment event stream with a shared set of columns (event ID, event type, timestamp, payment ID, amount); columns specific to one event type stay in its staging model. The gold payment lifecycle fact is an aggregation of that stream by `payment_id`. This avoids joining tables that can have several rows per payment (a payment can have several refunds), which would multiply rows.
+- **Each gateway event type has its own file and table.** Authorizations, captures, voids and refunds happen at different moments of the payment lifecycle and carry different columns (see the [source data specification](../components/source_data/spec.md)), so each lands in its own inbox folder and bronze table, with one staging model each. In silver, an intermediate model stacks them (a union, not a join) into one payment event stream with a shared set of columns (event ID, event type, timestamp, payment ID, amount); columns specific to one event type stay in its staging model. The gold payment lifecycle fact is an aggregation of that stream by `payment_id`. This avoids joining tables that can have several rows per payment (a payment can have several refunds), which would multiply rows.
 - **Dispute notifications and resolutions are one event stream.** Networks send a sequence of notices about the same dispute; storing them as events gives the dispute status history directly.
 - **Disputes arrive without Corvella Pay's `payment_id`.** Networks identify the transaction by its `acquirer_reference`, so silver matches each dispute to its payment through the settlement lines. This is the linking problem behind the 99.5% accuracy requirement.
 - **Payouts are not generated.** The disputes solution only needs balances and reserves; payouts can be added if reconciliation becomes a project.
@@ -94,11 +94,11 @@ The generator produces one set of files per source system, each with its own for
 - **Merchant changes:** risk tiers and reserve rates change over time, so the type 2 dimension has real history.
 - **Data quality traps:** duplicate events, a few disputes whose acquirer reference matches no payment, and settlement adjustments, so the dbt tests have something to catch.
 
-**Volume at 1% scale:** 24 months of history; the volumes of each source are in the [source data specification](source_data_spec.md#volumes).
+**Volume at 1% scale:** 24 months of history; the volumes of each source are in the [source data specification](../components/source_data/spec.md#volumes).
 
 ## Unity Catalog organization
 
-Each environment has its own catalog, `corvella_dev` and `corvella_prod`, with the same schemas, one per layer ([ADR-009](architecture_decision_records/adr-009-catalog-per-environment.md)):
+Each environment has its own catalog, `corvella_dev` and `corvella_prod`, with the same schemas, one per layer ([ADR-009](decisions/adr-009-catalog-per-environment.md)):
 
 ```
 corvella_dev / corvella_prod (catalog)
@@ -130,7 +130,7 @@ Unity Catalog provides, across all layers: permissions by role, column masks and
 
 **Who does what.** PySpark processes the data from the generator up to bronze. From bronze onwards, transformations are written in dbt, but dbt does not process data itself: it compiles each model into SQL (`CREATE OR REPLACE TABLE`, or `MERGE` for incremental models), runs the models in dependency order, and sends the SQL through the dbt-databricks adapter to a Databricks SQL warehouse, which executes it. The results are Delta tables in Unity Catalog.
 
-**Where dbt runs.** During development, from the local machine. In continuous integration, from GitHub Actions on every pull request. On schedule, as a **dbt task in the transformation job**, which is triggered when the ingestion job finishes (see "Job layout"). The job is defined in the Databricks Asset Bundle (see [ADR-008](architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md)), so the dbt task runs the copy of the project that `databricks bundle deploy` uploads to the workspace. It runs dbt Core on serverless jobs compute and sends the generated SQL to the workspace's serverless SQL warehouse; the run date is passed to dbt as a variable (for example `--vars '{"run_date": "{{job.start_time.iso_date}}"}'`).
+**Where dbt runs.** During development, from the local machine. In continuous integration, from GitHub Actions on every pull request. On schedule, as a **dbt task in the transformation job**, which is triggered when the ingestion job finishes (see "Job layout"). The job is defined in the Databricks Asset Bundle (see [ADR-008](decisions/adr-008-jobs-as-code-asset-bundles.md)), so the dbt task runs the copy of the project that `databricks bundle deploy` uploads to the workspace. It runs dbt Core on serverless jobs compute and sends the generated SQL to the workspace's serverless SQL warehouse; the run date is passed to dbt as a variable (for example `--vars '{"run_date": "{{job.start_time.iso_date}}"}'`).
 
 **Smoke test for the dbt task.** Before the pipeline relies on a dbt task, a minimal test confirms it works in Free Edition. The main risk is network access: Free Edition restricts outbound internet access to trusted domains, and it is not documented whether GitHub, PyPI and the dbt package hub are among them.
 
@@ -152,9 +152,9 @@ Unity Catalog provides, across all layers: permissions by role, column masks and
 
 If every check passes, the dbt task is confirmed for scheduled runs.
 
-**Result (Nov 9, 2026): passed.** A job with one dbt task, reading `main` from GitHub on serverless compute with `dbt-databricks` 1.13.0, ran `dbt deps`, `dbt debug` and `dbt run --select smoke_test`, and all five checks passed. The task used the profile Databricks generates from the selected SQL warehouse, not the committed `profiles.yml`, so no token is stored in the job. Scheduled dbt runs use the dbt task; the GitHub Actions fallback is not needed. The job definition is kept for reference in [`docs/reference/dbt-smoke-test.json`](reference/dbt-smoke-test.json) (exported from the Jobs API). To reuse it, replace `<your-sql-warehouse-id>` with your SQL warehouse ID (the last part of its HTTP path) and `git_url` with your copy of the repository; in Databricks Asset Bundles these become variables.
+**Result (Nov 9, 2026): passed.** A job with one dbt task, reading `main` from GitHub on serverless compute with `dbt-databricks` 1.13.0, ran `dbt deps`, `dbt debug` and `dbt run --select smoke_test`, and all five checks passed. The task used the profile Databricks generates from the selected SQL warehouse, not the committed `profiles.yml`, so no token is stored in the job. Scheduled dbt runs use the dbt task; the GitHub Actions fallback is not needed. The job definition is kept for reference in [`docs/architecture/reference/dbt-smoke-test.json`](reference/dbt-smoke-test.json) (exported from the Jobs API). To reuse it, replace `<your-sql-warehouse-id>` with your SQL warehouse ID (the last part of its HTTP path) and `git_url` with your copy of the repository; in Databricks Asset Bundles these become variables.
 
-**Bundle deploy (Nov 9, 2026): passed.** The same job, defined in the Databricks Asset Bundle (`databricks.yml` and `resources/dbt_smoke_test.job.yml`), was validated, deployed to the `dev` target and run with Databricks CLI 1.22.1. The warehouse was found by name through a bundle variable, the job was created as `[dev <user>] dbt-smoke-test`, the task ran the project files uploaded by the deploy (not a Git clone), and the run rebuilt `corvella.smoke_test.smoke_test`. Only files tracked by Git are uploaded, so `.env` stays local. Jobs are therefore defined as code with bundles (see [ADR-008](architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md)).
+**Bundle deploy (Nov 9, 2026): passed.** The same job, defined in the Databricks Asset Bundle (`databricks.yml` and `resources/dbt_smoke_test.job.yml`), was validated, deployed to the `dev` target and run with Databricks CLI 1.22.1. The warehouse was found by name through a bundle variable, the job was created as `[dev <user>] dbt-smoke-test`, the task ran the project files uploaded by the deploy (not a Git clone), and the run rebuilt `corvella.smoke_test.smoke_test`. Only files tracked by Git are uploaded, so `.env` stays local. Jobs are therefore defined as code with bundles (see [ADR-008](decisions/adr-008-jobs-as-code-asset-bundles.md)).
 
 **Schedules**, following the latency requirements:
 
@@ -199,14 +199,14 @@ Each decision is recorded in its own file:
 
 | ADR | Decision |
 | --- | --- |
-| [ADR-001](architecture_decision_records/adr-001-medallion-unity-catalog.md) | Medallion architecture on Databricks, governed by Unity Catalog |
-| [ADR-002](architecture_decision_records/adr-002-generate-once-replay.md) | Generate the source data once, then replay it by arrival time |
-| [ADR-003](architecture_decision_records/adr-003-landing-uc-volume.md) | Landing in a Unity Catalog volume |
-| [ADR-004](architecture_decision_records/adr-004-bronze-append-only.md) | Bronze is append-only, loaded incrementally by PySpark |
-| [ADR-005](architecture_decision_records/adr-005-dbt-silver-gold.md) | Silver and gold built with dbt, executed by Databricks |
-| [ADR-006](architecture_decision_records/adr-006-batch-processing.md) | Batch processing, no streaming |
-| [ADR-007](architecture_decision_records/adr-007-merchant-scd2-from-versions.md) | Merchant type 2 history built from preserved versions, not dbt snapshots |
-| [ADR-008](architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) | Jobs defined as code with Databricks Asset Bundles |
-| [ADR-009](architecture_decision_records/adr-009-catalog-per-environment.md) | One catalog per environment, deployed as bundle targets |
-| [ADR-010](architecture_decision_records/adr-010-service-principals.md) | Automation and prod jobs run as service principals |
-| [ADR-011](architecture_decision_records/adr-011-single-repository.md) | One repository for pipeline code and dbt |
+| [ADR-001](decisions/adr-001-medallion-unity-catalog.md) | Medallion architecture on Databricks, governed by Unity Catalog |
+| [ADR-002](decisions/adr-002-generate-once-replay.md) | Generate the source data once, then replay it by arrival time |
+| [ADR-003](decisions/adr-003-landing-uc-volume.md) | Landing in a Unity Catalog volume |
+| [ADR-004](decisions/adr-004-bronze-append-only.md) | Bronze is append-only, loaded incrementally by PySpark |
+| [ADR-005](decisions/adr-005-dbt-silver-gold.md) | Silver and gold built with dbt, executed by Databricks |
+| [ADR-006](decisions/adr-006-batch-processing.md) | Batch processing, no streaming |
+| [ADR-007](decisions/adr-007-merchant-scd2-from-versions.md) | Merchant type 2 history built from preserved versions, not dbt snapshots |
+| [ADR-008](decisions/adr-008-jobs-as-code-asset-bundles.md) | Jobs defined as code with Databricks Asset Bundles |
+| [ADR-009](decisions/adr-009-catalog-per-environment.md) | One catalog per environment, deployed as bundle targets |
+| [ADR-010](decisions/adr-010-service-principals.md) | Automation and prod jobs run as service principals |
+| [ADR-011](decisions/adr-011-single-repository.md) | One repository for pipeline code and dbt |

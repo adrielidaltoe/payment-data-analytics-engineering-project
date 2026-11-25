@@ -41,7 +41,7 @@ flowchart LR
     gold --> consumption["<b>Consumption</b><br/>dashboards,<br/>queue, Genie"]
 ```
 
-- **Medallion architecture** in Unity Catalog, one catalog per environment (`corvella_dev`, `corvella_prod`, see [ADR-009](docs/architecture_decision_records/adr-009-catalog-per-environment.md)), each with schemas `landing`, `bronze`, `silver` and `gold`.
+- **Medallion architecture** in Unity Catalog, one catalog per environment (`corvella_dev`, `corvella_prod`, see [ADR-009](docs/architecture/decisions/adr-009-catalog-per-environment.md)), each with schemas `landing`, `bronze`, `silver` and `gold`.
 - **Generate once, replay by arrival time:** the full history is generated once, then released into the inbox day by day (or hour by hour), so the pipeline receives data the way it would from real source systems.
 - **Bronze** is append-only, loaded incrementally by Auto Loader with an `availableNow` trigger.
 - **Silver and gold** are dbt models executed on a Databricks SQL warehouse. Gold is a dimensional model: payment facts, a dispute accumulating snapshot, a type 2 merchant dimension and daily snapshots.
@@ -52,17 +52,17 @@ flowchart LR
 
 | ADR | Decision |
 | --- | --- |
-| [001](docs/architecture_decision_records/adr-001-medallion-unity-catalog.md) | Medallion architecture on Databricks, governed by Unity Catalog |
-| [002](docs/architecture_decision_records/adr-002-generate-once-replay.md) | Generate source data once, replay it by arrival time |
-| [003](docs/architecture_decision_records/adr-003-landing-uc-volume.md) | Landing in a Unity Catalog volume |
-| [004](docs/architecture_decision_records/adr-004-bronze-append-only.md) | Bronze append-only, loaded by Auto Loader (`availableNow`) |
-| [005](docs/architecture_decision_records/adr-005-dbt-silver-gold.md) | Silver and gold built with dbt, executed by Databricks |
-| [006](docs/architecture_decision_records/adr-006-batch-processing.md) | Batch processing, no streaming |
-| [007](docs/architecture_decision_records/adr-007-merchant-scd2-from-versions.md) | Merchant type 2 history built from preserved versions, not dbt snapshots |
-| [008](docs/architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) | Jobs defined as code with Databricks Asset Bundles |
-| [009](docs/architecture_decision_records/adr-009-catalog-per-environment.md) | One catalog per environment, deployed as bundle targets |
-| [010](docs/architecture_decision_records/adr-010-service-principals.md) | Automation and prod jobs run as service principals |
-| [011](docs/architecture_decision_records/adr-011-single-repository.md) | One repository for pipeline code and dbt |
+| [001](docs/architecture/decisions/adr-001-medallion-unity-catalog.md) | Medallion architecture on Databricks, governed by Unity Catalog |
+| [002](docs/architecture/decisions/adr-002-generate-once-replay.md) | Generate source data once, replay it by arrival time |
+| [003](docs/architecture/decisions/adr-003-landing-uc-volume.md) | Landing in a Unity Catalog volume |
+| [004](docs/architecture/decisions/adr-004-bronze-append-only.md) | Bronze append-only, loaded by Auto Loader (`availableNow`) |
+| [005](docs/architecture/decisions/adr-005-dbt-silver-gold.md) | Silver and gold built with dbt, executed by Databricks |
+| [006](docs/architecture/decisions/adr-006-batch-processing.md) | Batch processing, no streaming |
+| [007](docs/architecture/decisions/adr-007-merchant-scd2-from-versions.md) | Merchant type 2 history built from preserved versions, not dbt snapshots |
+| [008](docs/architecture/decisions/adr-008-jobs-as-code-asset-bundles.md) | Jobs defined as code with Databricks Asset Bundles |
+| [009](docs/architecture/decisions/adr-009-catalog-per-environment.md) | One catalog per environment, deployed as bundle targets |
+| [010](docs/architecture/decisions/adr-010-service-principals.md) | Automation and prod jobs run as service principals |
+| [011](docs/architecture/decisions/adr-011-single-repository.md) | One repository for pipeline code and dbt |
 
 ## Tech stack
 
@@ -111,7 +111,7 @@ Prerequisites:
     dbt debug   # check the connection to the SQL warehouse
     ```
 
-4. Once per workspace, an admin creates the `corvella_dev` and `corvella_prod` catalogs with [`setup/catalogs.sql`](setup/catalogs.sql), in the SQL editor (replace `<admin user>` with your login first). Bundles can't create catalogs in Free Edition; see the [environments plan](docs/environments_and_cicd.md).
+4. Once per workspace, an admin creates the `corvella_dev` and `corvella_prod` catalogs with [`setup/catalogs.sql`](setup/catalogs.sql), in the SQL editor (replace `<admin user>` with your login first). Bundles can't create catalogs in Free Edition; see the [environments plan](docs/architecture/environments_and_cicd.md).
 
 5. Deploy and run the jobs with the Databricks CLI, from the repository root, in the same shell (the CLI reads the same variables from `.env`). The `dev` target deploys to `corvella_dev` and prefixes every job with `[dev]`; its schedules stay paused:
 
@@ -142,7 +142,7 @@ Done:
 - [x] Solution design and architecture decisions
 - [x] Smoke test for the dbt task in a Databricks Job
 - [x] Databricks Asset Bundles: smoke test job deployed and run from the bundle
-- [x] Repository, environments (dev and prod) and CI/CD with Asset Bundles ([plan](docs/environments_and_cicd.md)): pull requests run lint, tests, bundle validation and `dbt build` on `corvella_dev`; merges to the protected `main` deploy `prod`
+- [x] Repository, environments (dev and prod) and CI/CD with Asset Bundles ([plan](docs/architecture/environments_and_cicd.md)): pull requests run lint, tests, bundle validation and `dbt build` on `corvella_dev`; merges to the protected `main` deploy `prod`
 
 Next:
 
@@ -157,8 +157,18 @@ Next:
 
 ## Documentation
 
+The docs are grouped by what you need from them: why the project exists, how the whole solution fits together, and what each component must do and how it is being built.
+
+**Why:**
+
 - [Business context](docs/business_context.md) — company, payment lifecycle, dispute process, business questions, metrics, requirements and constraints.
-- [Solution design](docs/solution_design.md) — architecture, layers, source data, Unity Catalog layout, processing and orchestration.
-- [Source data specification](docs/source_data_spec.md) — the files, columns, arrival times and generation rules of each synthetic source.
-- [Environments and CI/CD](docs/environments_and_cicd.md) — dev and prod targets, identities and secrets, CI and CD workflows, repository rules and implementation steps.
-- [Architecture decision records](docs/architecture_decision_records/) — one file per architecture decision (ADR-001 to ADR-011).
+
+**How the solution fits together** ([docs/architecture/](docs/architecture)):
+
+- [Solution design](docs/architecture/solution_design.md) — architecture, layers, source data, Unity Catalog layout, processing and orchestration.
+- [Environments and CI/CD](docs/architecture/environments_and_cicd.md) — dev and prod targets, identities and secrets, CI and CD workflows, repository rules and implementation steps.
+- [Architecture decision records](docs/architecture/decisions) — one file per architecture decision (ADR-001 to ADR-011).
+
+**Components** ([docs/components/](docs/components)): each component has a spec (what it must do, with numbered rules) and a plan (how it is built, step by step, and its progress).
+
+- Source data: [spec](docs/components/source_data/spec.md) — the files, columns, arrival times and generation rules of each synthetic source; [plan](docs/components/source_data/plan.md) — the generator's code layout and build steps.

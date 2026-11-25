@@ -1,4 +1,4 @@
-# CI on every pull request to main (see docs/environments_and_cicd.md).
+# CI on every pull request to main (see docs/architecture/environments_and_cicd.md).
 # Steps run from cheapest to most expensive; CI never deploys.
 name: CI
 
