@@ -13,4 +13,5 @@ dbt/.user.yml
 # Python caches
 __pycache__/
 .pytest_cache/
+.coverage
 .ruff_cache/

@@ -34,7 +34,12 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: sqlfluff lint dbt
+
+      # The Spark tests need Java 17, the same JDK as serverless environment
+      # version 6. The runner image already has it installed.
       - run: pytest
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
 
   databricks:
     name: Bundle validate and dbt build
