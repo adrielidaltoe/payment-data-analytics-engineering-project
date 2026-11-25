@@ -63,12 +63,12 @@ designing anything:
 ## Development workflow (spec-driven)
 
 - The user makes every decision. Claude proposes options with a recommendation and never decides alone.
-- Each component (source data generator, ingestion, silver and gold dbt models, dashboards, …) has a spec (what it must do, with numbered rules) and a plan (how it is built, in small steps), in `docs/components/<component>/spec.md` and `plan.md`.
+- Each component (source data generator, ingestion, silver and gold dbt models, dashboards, …) has a spec (what it must do, with numbered rules) and a plan (how it is built, in small tasks), in `docs/components/<component>/spec.md` and `plan.md`. Each task has its own file, `docs/components/<component>/tasks/<NN>-<name>.md`, created when the task starts.
 - Rule IDs are unique across specs, with one prefix per component (`SRC-6.7` is rule 7 of Source 6 in the source data spec).
-- Before writing a step's code, Claude adds a step spec to the plan and waits for approval. It lists the rule IDs the step covers, the classes, functions or models with their inputs and outputs, and the tests with the cases each covers.
+- Before writing a task's code, Claude writes the task spec in the task's file and waits for approval. It lists the rule IDs the task covers, the classes, functions or models with their inputs and outputs, and the tests with the cases each covers. The file also records the decisions made during the task and, at the end, its result and PR.
 - Every test names the rule IDs it checks, written exactly as in the spec (`SRC-C.4`): in its docstring for pytest (see Tests), in its description for dbt.
 - A component is finished only when the rule coverage command (README, Checks) prints no untested rule for its prefix.
-- If the code needs to differ from the spec, Claude stops and reports it as soon as it is found, before finishing the step, with the options and a recommendation.
+- If the code needs to differ from the spec, Claude stops and reports it as soon as it is found, before finishing the task, with the options and a recommendation.
 - The spec changes only after the user approves, in the same PR as the code.
 
 ## Git workflow

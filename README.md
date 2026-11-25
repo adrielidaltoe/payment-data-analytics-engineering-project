@@ -184,4 +184,4 @@ The docs are grouped by what you need from them: why the project exists, how the
 
 **Components** ([docs/components/](docs/components)): each component has a spec (what it must do, with numbered rules) and a plan (how it is built, step by step, and its progress).
 
-- Source data: [spec](docs/components/source_data/spec.md) — the files, columns, arrival times and generation rules of each synthetic source; [plan](docs/components/source_data/plan.md) — the generator's code layout and build steps.
+- Source data: [spec](docs/components/source_data/spec.md) — the files, columns, arrival times and generation rules of each synthetic source; [plan](docs/components/source_data/plan.md) — the generator's code layout and build tasks, each with its own file in `tasks/`.

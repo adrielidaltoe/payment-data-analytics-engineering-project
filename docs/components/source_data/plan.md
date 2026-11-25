@@ -1,8 +1,8 @@
 # Source data — Generator Plan
 
-How the PySpark generator that writes the source data is built, and the steps to build it. What the generator must produce is defined in the [source data spec](spec.md); this plan only says how and in what order.
+How the PySpark generator that writes the source data is built, and the tasks to build it. What the generator must produce is defined in the [source data spec](spec.md); this plan only says how and in what order.
 
-Each step is small enough to review on its own. Before its code is written, the step gets a step spec here (the rule IDs it covers, the classes and functions with their inputs and outputs, and the tests with the cases each covers) and waits for approval. The step ends with a commit and a stop for review. Tick a step when it is merged.
+Each task is small enough to review on its own and has its own file in [tasks/](tasks), created when the task starts. Before any code is written, the file gets the task spec (the rule IDs it covers, the classes and functions with their inputs and outputs, and the tests with the cases each covers) and waits for approval. While the task runs, the file records the decisions made; at the end, its result and PR. Tick a task in the list below when it is merged.
 
 ## Code layout
 
@@ -59,12 +59,12 @@ Inside the business rules, each generation rule is a `DataFrame -> DataFrame` fu
 
 **Generating month by month.** The business rules run one **sale month** at a time: payments of that month and everything that follows from them (refunds, alerts, disputes, even when they happen up to 120 days later). Merchants are generated once, for the whole window, before the first month; balances are calculated once, after the last month, from all the other tables. Each result is saved as a Delta table in the `landing` schema (`generator_<entity>`). The sources then write their files one **arrival month** at a time, reading those tables. A file can hold events from several sale months (a March notification batch has disputes on sales from November to March), so files are written only after all the months are generated, and each file is written exactly once.
 
-## Steps
+## Tasks
 
 **Phase A: foundations**
 
-- [x] **1. Seeds.** `reason_codes`, `merchant_categories` and `policy_thresholds` in `dbt/seeds/`, with a properties file giving the column types and tests. Done when `dbt seed` loads them in dev.
-- [x] **2. Spark test setup.** PySpark as a dev dependency, Java in CI, and `tests/generator/conftest.py` with a local SparkSession. Done when a trivial Spark test passes locally and in CI.
+- [x] **[1. Seeds](tasks/01-seeds.md).** `reason_codes`, `merchant_categories` and `policy_thresholds` in `dbt/seeds/`, with a properties file giving the column types and tests. Done when `dbt seed` loads them in dev.
+- [x] **[2. Spark test setup](tasks/02-spark-test-setup.md).** PySpark as a dev dependency, Java in CI, and `tests/generator/conftest.py` with a local SparkSession. Done when a trivial Spark test passes locally and in CI.
 - [ ] **3. Scenario.** `scenario.py`: the frozen scenario, the builder with its cross-field checks, and the two presets. Done when tests cover every check in `build()`.
 - [ ] **4. Keyed random values.** `core/keyed_random.py`: uniform numbers, integers in a range and weighted choices, all derived from a hash of the record's key, the seed and a salt. Done when tests show the same inputs give the same values whatever the partitioning, and the shares are close to the weights.
 - [ ] **5. Identifiers.** `core/identifiers.py`: the ID prefixes, capture batch IDs and acquirer references with their check digit. Done when tests check each format and that IDs don't collide.
@@ -76,7 +76,7 @@ Inside the business rules, each generation rule is a `DataFrame -> DataFrame` fu
 - [ ] **8. File writers.** `writers.py`: JSON Lines and CSV, file names from the arrival time, `arrival_date=` folders, amounts as strings in JSON, nulls written as the conventions say. Done when tests write and read back files in a temporary folder.
 - [ ] **9. Arrival policies.** `arrival.py`: hourly files, business-day files, network batches and next-day files, each with its lateness rule. Done when tests check the file times and the share of late files.
 - [ ] **10. Duplicate trap.** `traps.py`: the `DataQualityTrap` interface and `DuplicateResend` (an event sent again in a later file with the same ID). The other traps are added with their source. Done when tests check the rate and that the copy lands in a later file.
-- [ ] **11. Source generator base and factory.** `sources/base.py` and `sources/factory.py`. Done when a test runs a fake source through the four steps.
+- [ ] **11. Source generator base and factory.** `sources/base.py` and `sources/factory.py`. Done when a test runs a fake source through the four delivery steps of `SourceGenerator.run()`.
 
 **Phase C: business rules and sources**
 
@@ -101,5 +101,5 @@ Inside the business rules, each generation rule is a `DataFrame -> DataFrame` fu
 **Phase D: running it**
 
 - [ ] **29. Orchestrator and entry point.** `orchestrator.py` and `__main__.py`: business rules by sale month into the `generator_` tables, then files by arrival month into `source_history`. Done when the test scenario runs end to end locally.
-- [ ] **30. Acceptance tests.** `tests/generator/test_acceptance.py`: every structural check in the [spec's acceptance checks](spec.md#acceptance-checks) (IDs, references, card data, payment paths, folders, reproducibility) on the test scenario. The metric targets need the full history, so they are checked in step 31.
-- [ ] **31. Generator job.** A job in the Asset Bundle that runs the generator on serverless compute, then a full run in dev. Done when the metric targets (M1 by month, M6, the M5 watch band, the written-off amount) are within ±10%, with the results recorded here, and the [rule coverage command](../../../README.md#checks) for `SRC` lists no untested rule and no unknown ID. Rules tested in another component (for example SRC-6.3, tested by the silver dbt models) are listed here as pending until that component tests them.
+- [ ] **30. Acceptance tests.** `tests/generator/test_acceptance.py`: every structural check in the [spec's acceptance checks](spec.md#acceptance-checks) (IDs, references, card data, payment paths, folders, reproducibility) on the test scenario. The metric targets need the full history, so they are checked in task 31.
+- [ ] **31. Generator job.** A job in the Asset Bundle that runs the generator on serverless compute, then a full run in dev. Done when the metric targets (M1 by month, M6, the M5 watch band, the written-off amount) are within ±10%, with the results recorded in its task file, and the [rule coverage command](../../../README.md#checks) for `SRC` lists no untested rule and no unknown ID. Rules tested in another component (for example SRC-6.3, tested by the silver dbt models) are listed in its task file as pending until that component tests them.
