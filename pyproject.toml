@@ -40,8 +40,21 @@ extend-exclude = ["dbt/target", "dbt/dbt_packages"]
 
 [tool.ruff.lint]
 # pycodestyle errors, pyflakes, import sorting, bugbear, pyupgrade,
-# type annotations, docstrings
-select = ["E", "F", "I", "B", "UP", "ANN", "D"]
+# type annotations, docstrings; then the coding principles in CLAUDE.md:
+# early return (RET, SIM, C901 complexity) and fail fast (BLE blind except,
+# S110 try-except-pass, TRY exception patterns).
+select = ["E", "F", "I", "B", "UP", "ANN", "D", "RET", "SIM", "C901", "BLE", "S110", "TRY"]
+ignore = [
+    # Fail fast needs clear messages at the raise (`raise ValueError(f"...")`);
+    # TRY003 would demand a custom exception class for each message.
+    "TRY003",
+    # Suggests contextlib.suppress, which still swallows the error.
+    "SIM105",
+]
+
+[tool.ruff.lint.mccabe]
+# Functions with more branches than this should be split or use early returns.
+max-complexity = 10
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
