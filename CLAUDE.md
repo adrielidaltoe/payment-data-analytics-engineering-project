@@ -38,6 +38,15 @@ designing anything:
 - Add type annotations to all function and method parameters and return values.
 - Write a docstring for every module, class, method and function, saying what it does and, where useful, its arguments, return value and errors raised.
 
+## Coding principles
+
+ruff checks what it can (rule sets in `pyproject.toml`); the rest is checked in review and by tests.
+
+- **Fail fast.** Validate inputs where they enter: parameters, seed files, expected DataFrame columns. Raise a specific exception (`ValueError`, `KeyError`, …) with a message that says what is wrong and the values involved. Never continue with data known to be wrong.
+- **Never hide errors.** No bare or broad `except` (`except Exception`), and no `except: pass`. Catch only an exception you can handle, and re-raise or let it propagate otherwise.
+- **Early return.** Handle special and invalid cases first with guard clauses (`if …: raise` or `return`), then write the main path without nesting. No `else` after a `return` or `raise`.
+- **Each validation has a test** for the invalid case, checking the exception type and message.
+
 ## Tests
 
 - pytest: files `test_<module>.py`, mirroring the code's folders under `tests/`.
