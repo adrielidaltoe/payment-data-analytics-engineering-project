@@ -134,6 +134,19 @@ uv run pytest                # unit tests, with a coverage report
 
 pytest prints the coverage of `src/corvella`: the share of lines the tests ran, and the line numbers no test reached. There is no minimum percentage. In PySpark, one line can hold several cases (for example `F.when(...).otherwise(...)`), and coverage counts the line as covered once it runs, even if the test data reaches only one case. So the report finds untested code, and each generation rule still needs test rows for every one of its cases.
 
+**Rule coverage.** Each component's spec numbers its rules (`SRC-6.4`), and every test names the rules it checks in its docstring (pytest) or description (dbt). This command lists, for one prefix, the rules no test mentions, then the IDs that tests mention but no spec defines (typos or removed rules). A component is finished when both lists are empty:
+
+```bash
+export LC_ALL=C PREFIX=SRC   # C collation, so sort and comm agree; one prefix per component
+defined()    { grep -ohE "\*\*${PREFIX}-[0-9A-Z]+\.[0-9]+" docs/components/*/spec.md | tr -d '*' | sort -u; }
+referenced() { grep -rhoE "${PREFIX}-[0-9A-Z]+\.[0-9]+" tests dbt --include='*.py' --include='*.yml' \
+                 --exclude-dir=dbt_packages --exclude-dir=target | sort -u; }
+echo "Untested rules:"; comm -23 <(defined) <(referenced)
+echo "Unknown IDs:";    comm -13 <(defined) <(referenced)
+```
+
+It checks that a test mentions each rule, not that the test passes (pytest and dbt do that), and an ID in a comment also counts, so reviews still check that each test really covers its rule.
+
 ## Project status
 
 Done:

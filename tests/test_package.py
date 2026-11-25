@@ -1,5 +1,6 @@
 import corvella
 
 
-def test_package_imports() -> None:
-    assert corvella.__doc__
+class TestCorvellaPackage:
+    def test_import_has_module_docstring(self) -> None:
+        assert corvella.__doc__
