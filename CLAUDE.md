@@ -38,6 +38,13 @@ designing anything:
 - Add type annotations to all function and method parameters and return values.
 - Write a docstring for every module, class, method and function, saying what it does and, where useful, its arguments, return value and errors raised.
 
+## Tests
+
+- pytest: files `test_<module>.py`, mirroring the code's folders under `tests/`.
+- Group the tests of one class or function in a class named `Test<ClassName>` (for a function, its name in CamelCase: `TestAssignArrival`). No `__init__`.
+- Name each test after the behavior it checks: `test_<what is tested>_<situation>_<expected result>`, in snake_case. Inside a `Test<ClassName>`, "what is tested" is the method or feature, not the class again; leave out the situation when there is only one. Example: `TestScenarioBuilder.test_build_warmup_longer_than_history_raises_error`.
+- Never put rule IDs in test names. A test that checks rules starts its docstring with their IDs, then one sentence on what it checks: `"""SRC-C.4: two runs with the same parameters write identical files."""`.
+
 ## Secrets and connections
 
 - `dbt/profiles.yml` is committed and may contain only `env_var()` references, never literal hosts, paths or tokens.
@@ -59,7 +66,8 @@ designing anything:
 - Each component (source data generator, ingestion, silver and gold dbt models, dashboards, …) has a spec (what it must do, with numbered rules) and a plan (how it is built, in small steps), in `docs/components/<component>/spec.md` and `plan.md`.
 - Rule IDs are unique across specs, with one prefix per component (`SRC-6.7` is rule 7 of Source 6 in the source data spec).
 - Before writing a step's code, Claude adds a step spec to the plan and waits for approval. It lists the rule IDs the step covers, the classes, functions or models with their inputs and outputs, and the tests with the cases each covers.
-- Every test names the rule IDs it checks: in its name or docstring for pytest, in its description for dbt.
+- Every test names the rule IDs it checks, written exactly as in the spec (`SRC-C.4`): in its docstring for pytest (see Tests), in its description for dbt.
+- A component is finished only when the rule coverage command (README, Checks) prints no untested rule for its prefix.
 - If the code needs to differ from the spec, Claude stops and reports it as soon as it is found, before finishing the step, with the options and a recommendation.
 - The spec changes only after the user approves, in the same PR as the code.
 
