@@ -1,6 +1,6 @@
 # Environments and CI/CD
 
-Code reaches production in one way only: a feature branch, a pull request that passes CI, and a merge to `main` that CD deploys to the `prod` bundle target. Developers deploy to `dev` from their own machines; automation never deploys on pull requests. The decisions behind this are [ADR-008](architecture_decision_records/adr-008-jobs-as-code-asset-bundles.md) (jobs as code with Databricks Asset Bundles), [ADR-009](architecture_decision_records/adr-009-catalog-per-environment.md) (one catalog per environment).
+Code reaches production in one way only: a feature branch, a pull request that passes CI, and a merge to `main` that CD deploys to the `prod` bundle target. Developers deploy to `dev` from their own machines; automation never deploys on pull requests. The decisions behind this are [ADR-008](decisions/adr-008-jobs-as-code-asset-bundles.md) (jobs as code with Databricks Asset Bundles), [ADR-009](decisions/adr-009-catalog-per-environment.md) (one catalog per environment).
 
 ```mermaid
 flowchart LR
@@ -108,13 +108,13 @@ The workflow runs in the GitHub environment `prod`, as `corvella-deployer`, with
 └── .env.example, .gitignore, .python-version, README.md, CLAUDE.md
 ```
 
-`pyproject.toml` replaces `requirements.txt`. The reference export of the first smoke test job moves from `databricks/jobs/` to `docs/reference/`, so no top-level `databricks/` folder sits next to `databricks.yml`.
+`pyproject.toml` replaces `requirements.txt`. The reference export of the first smoke test job moves from `databricks/jobs/` to `docs/architecture/reference/`, so no top-level `databricks/` folder sits next to `databricks.yml`.
 
 ## Implementation steps
 
 Each step ends with a check that proves it works.
 
-1. **Repository layout.** `pyproject.toml` (dependencies, ruff and pytest settings), an empty `src/corvella/` package, `tests/` with one test, sqlfluff for the dbt SQL (`dbt/.sqlfluff`), the reference job moved to `docs/reference/`. *Check:* `ruff check`, `sqlfluff lint dbt` and `pytest` pass locally.
+1. **Repository layout.** `pyproject.toml` (dependencies, ruff and pytest settings), an empty `src/corvella/` package, `tests/` with one test, sqlfluff for the dbt SQL (`dbt/.sqlfluff`), the reference job moved to `docs/architecture/reference/`. *Check:* `ruff check`, `sqlfluff lint dbt` and `pytest` pass locally.
 2. **Service principals.** Create `corvella-ci` and `corvella-deployer` with OAuth secrets, let both use the SQL warehouse, allow `corvella-deployer` to create catalogs (no longer needed, see step 3), and add the GitHub secrets and the `prod` environment. *Check:* the CLI logs in as each one.
 3. **Bundle environments.** `catalog` variable, `dev` and `prod` targets (both with the paused preset; prod in production mode, with `run_as` and `root_path` set to `corvella-deployer`), job names prefixed with the target, `setup/catalogs.sql` for the catalogs and grants from the identities table, `resources/catalog.yml` with the schemas and volumes, the smoke test job on `${var.catalog}`. *Check:* the script creates both catalogs with their grants and owners; `bundle validate -t prod` shows paused jobs run as the deployer; `bundle deploy -t dev` creates the schemas and volumes in `corvella_dev`; the smoke test job runs in dev.
 4. **dbt.** `profiles.yml` catalog from `DBT_CATALOG`, `.env.example` updated. *Check:* `dbt build` locally against `corvella_dev`.
