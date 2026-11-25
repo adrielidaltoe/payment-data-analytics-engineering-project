@@ -20,25 +20,31 @@ seeds:
         valid_to: date
     data_tests:
       - dbt_utils.unique_combination_of_columns:
+          description: "SRC-R.1: each network code has one row per effective date, so a lookup on a date finds one category."
           arguments:
             combination_of_columns: [network, reason_code, valid_from]
     columns:
       - name: network
         description: Card network that defines the code.
         data_tests:
-          - not_null
+          - not_null:
+              description: "SRC-R.1: every code belongs to a network."
           - accepted_values:
+              description: "SRC-R.1: codes exist only for the two networks, visa and mastercard."
               arguments:
                 values: [visa, mastercard]
       - name: reason_code
         description: The network's code, as it appears in dispute notifications (for example 13.1 or 4837).
         data_tests:
-          - not_null
+          - not_null:
+              description: "SRC-R.1: every row has a reason code."
       - name: reason_category
         description: Category used to group codes across networks.
         data_tests:
-          - not_null
+          - not_null:
+              description: "SRC-R.1: every code maps to a reason category."
           - accepted_values:
+              description: "SRC-R.1: codes map only to the five reason categories."
               arguments:
                 values:
                   - fraud
@@ -49,11 +55,13 @@ seeds:
       - name: description
         description: The network's name for the code.
         data_tests:
-          - not_null
+          - not_null:
+              description: "SRC-R.1: every code has the network's name for it."
       - name: valid_from
         description: First date the code applies.
         data_tests:
-          - not_null
+          - not_null:
+              description: "SRC-R.1: every code has the date it starts to apply."
       - name: valid_to
         description: Date the code stopped applying; empty while it still applies.
 
@@ -70,17 +78,22 @@ seeds:
       - name: mcc
         description: Four-digit merchant category code, kept as text.
         data_tests:
-          - not_null
-          - unique
+          - not_null:
+              description: "SRC-R.1: every row has an MCC."
+          - unique:
+              description: "SRC-R.1: each MCC appears once, so it maps to a single segment."
       - name: description
         description: Standard name of the category.
         data_tests:
-          - not_null
+          - not_null:
+              description: "SRC-R.1: every MCC has its standard name."
       - name: segment
         description: Merchant segment the category belongs to.
         data_tests:
-          - not_null
+          - not_null:
+              description: "SRC-R.1: every MCC belongs to a segment."
           - accepted_values:
+              description: "SRC-R.1: MCCs belong only to the four merchant segments."
               arguments:
                 values: [ecommerce, subscriptions, restaurants, retail]
 
@@ -96,6 +109,7 @@ seeds:
         valid_to: date
     data_tests:
       - dbt_utils.unique_combination_of_columns:
+          description: "SRC-R.1: each threshold has one value per effective date, so a lookup on a date finds one value."
           arguments:
             combination_of_columns: [threshold_name, valid_from]
     columns:
@@ -105,8 +119,10 @@ seeds:
           dispute rates (0.0075 is 0.75%); auto_accept_limit and dispute_fee
           are US dollar amounts.
         data_tests:
-          - not_null
+          - not_null:
+              description: "SRC-R.1: every row names its threshold."
           - accepted_values:
+              description: "SRC-R.1: only the five thresholds in the spec exist."
               arguments:
                 values:
                   - watch_line
@@ -119,10 +135,12 @@ seeds:
           The threshold value. Four decimal places, because the same column
           holds rates; dollar amounts use only two.
         data_tests:
-          - not_null
+          - not_null:
+              description: "SRC-R.1: every threshold has a value."
       - name: valid_from
         description: First date the value applies.
         data_tests:
-          - not_null
+          - not_null:
+              description: "SRC-R.1: every value has the date it starts to apply."
       - name: valid_to
         description: Date the value stopped applying; empty while it still applies.

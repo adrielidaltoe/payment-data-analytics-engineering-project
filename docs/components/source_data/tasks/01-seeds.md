@@ -34,6 +34,6 @@ The reference data that both the generator and dbt use, as dbt seeds.
 - `dbt build --select resource_type:seed` in `corvella_dev`: `PASS=21` (3 seeds, 18 tests). CI passed.
 - The first run failed with "Cannot create the resource" when opening the connection: the SQL warehouse can't start until you have logged in to the workspace that day.
 
-## Pending
+## Follow-up
 
-- The 18 seed tests don't name SRC-R.1 in their descriptions yet; the convention came after this task. Until they do, the rule coverage command lists SRC-R.1 as untested.
+- The 18 seed tests got descriptions naming SRC-R.1 after the test convention was set (rule IDs in dbt test descriptions), so the rule coverage command counts the rule as tested.
